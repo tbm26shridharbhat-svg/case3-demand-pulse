@@ -70,7 +70,6 @@ case3-demand-pulse/
 ├── exec_summary.md                 ← one-page executive summary
 ├── STORY.md                        ← long-form (~2,800 word) writeup, with personal context
 ├── NOTES.md                        ← rough working notes — what almost went wrong, what I'd defend in Q&A
-├── deck.md                         ← 5-slide Marp markdown (render: `marp deck.md --pdf`)
 ├── DECISIONS.md                    ← assumptions, trade-offs, what I'd actually say in a meeting, full AI disclosure
 ├── AUDIT.md                        ← every number in the submission, traced to a script that recomputes it
 ├── audit_truth.json                ← canonical numbers, locked. CI fails on drift
