@@ -11,6 +11,8 @@ license: mit
 
 # Case 3 — Food Delivery Demand Pulse
 
+[![CI](https://github.com/tbm26shridharbhat-svg/case3-demand-pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/tbm26shridharbhat-svg/case3-demand-pulse/actions/workflows/ci.yml)
+
 **Live demo:** <https://shridharbhat820-demand-pulse.hf.space>  ·  *(also accessible via the Space page on Hugging Face)*
 **Repo:** <https://github.com/tbm26shridharbhat-svg/case3-demand-pulse>
 **Demo video:** _(replace with Loom/YouTube link)_
@@ -65,8 +67,12 @@ case3-demand-pulse/
 ├── deck.md                         ← 5-slide Marp markdown (render: `marp deck.md --pdf`)
 ├── DECISIONS.md                    ← assumptions, trade-offs, de-scoped items
 ├── AUDIT.md                        ← every number in the submission, traced to a script that recomputes it
+├── audit_truth.json                ← canonical numbers, locked. CI fails on drift
 ├── scripts/
-│   └── canonical_audit.py          ← single source of truth — recomputes every claim
+│   ├── canonical_audit.py          ← single source of truth — recomputes every claim
+│   └── export_pngs.py              ← deck-chart export utility
+├── tests/                          ← pytest suite: data-quality + audit-lock contracts
+├── .github/workflows/ci.yml        ← lint + tests + audit lock + notebook execution + Streamlit boot
 └── requirements.txt
 ```
 

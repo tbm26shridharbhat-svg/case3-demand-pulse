@@ -1,15 +1,18 @@
 """Canonical truth table — recompute every number quoted in the submission.
 
-Run from project root:
-    source .venv/bin/activate
-    python scripts/canonical_audit.py
+Run modes (from project root, with .venv active):
+    python scripts/canonical_audit.py            print numbers (default)
+    python scripts/canonical_audit.py --write    write audit_truth.json (regenerate the lock)
+    python scripts/canonical_audit.py --verify   compare to audit_truth.json, exit non-zero on drift
 
-Any document or notebook that quotes a different number than this script produces is wrong.
-See AUDIT.md for the cross-reference matrix.
+The CI/CD workflow runs in --verify mode. Any document or notebook that quotes a different
+number than this script produces is wrong. See AUDIT.md for the cross-reference matrix.
 """
 import pandas as pd
 import numpy as np
 import warnings
+import json
+import sys
 from pathlib import Path
 warnings.filterwarnings("ignore")
 from scipy.cluster.hierarchy import linkage, fcluster
@@ -195,5 +198,41 @@ for city in sorted(df.city.unique()):
     T[f"city_{city.lower()}_naive_mape_%"] = round(mape(bt_n.a, bt_n.p), 2)
     T[f"city_{city.lower()}_hw_mape_%"] = round(mape(bt_h.a, bt_h.p), 2)
 
-for k, val in sorted(T.items()):
-    print(f"{k:42s} = {val}")
+TRUTH_PATH = ROOT / "audit_truth.json"
+mode = sys.argv[1] if len(sys.argv) > 1 else "print"
+
+if mode == "--write":
+    TRUTH_PATH.write_text(json.dumps(T, indent=2, default=str))
+    print(f"Wrote {TRUTH_PATH}  ({len(T)} keys)")
+
+elif mode == "--verify":
+    if not TRUTH_PATH.exists():
+        print(f"FATAL: {TRUTH_PATH} not found. Run with --write first to lock truth.", file=sys.stderr)
+        sys.exit(2)
+    locked = json.loads(TRUTH_PATH.read_text())
+    drift = []
+    for k, v in T.items():
+        # Tolerances: bootstrap CIs and PSM estimates have inherent RNG noise even with seed
+        tolerance = 0.5 if k.startswith("psm_") else 1e-4
+        if k not in locked:
+            drift.append((k, "MISSING from audit_truth.json", v))
+        else:
+            lv = locked[k]
+            try:
+                if isinstance(v, (int, float)) and isinstance(lv, (int, float)):
+                    if abs(float(v) - float(lv)) > tolerance:
+                        drift.append((k, f"locked={lv}", f"computed={v}"))
+                elif v != lv:
+                    drift.append((k, f"locked={lv}", f"computed={v}"))
+            except Exception as e:
+                drift.append((k, f"compare-error: {e}", "—"))
+    if drift:
+        print("AUDIT DRIFT DETECTED:")
+        for d in drift:
+            print(f"  {d[0]:38s}  {d[1]}  →  {d[2]}")
+        sys.exit(1)
+    print(f"AUDIT OK — {len(T)} keys match audit_truth.json.")
+
+else:
+    for k, val in sorted(T.items()):
+        print(f"{k:42s} = {val}")
