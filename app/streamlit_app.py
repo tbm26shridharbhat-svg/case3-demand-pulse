@@ -589,6 +589,12 @@ seasonal-naïve by **32% relative MAPE** and is one line of pickle to ship. Note
 the 5 production monitors we'd put around it on day one.
 """)
 
+    st.subheader("Forecast table (April 1–7, 2025)")
+    st.dataframe(
+        fc.assign(forecast_orders=lambda d: d.forecast_orders.round(0).astype(int)),
+        hide_index=True, use_container_width=True,
+    )
+
 
 # ===========================================================
 # Page 8 — Per-city forecasts (Tier 1.4)
@@ -845,7 +851,3 @@ elif page == "A/B Test Simulator":
             f"     instead of +{lift_pp * 100:.0f}pp roughly halves the required N."
         )
 
-    st.divider()
-    st.subheader("Forecast table (April 1–7, 2025)")
-    st.dataframe(fc.assign(forecast_orders=lambda d: d.forecast_orders.round(0).astype(int)),
-                 hide_index=True, use_container_width=True)
