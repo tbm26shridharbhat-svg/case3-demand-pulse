@@ -1,0 +1,7 @@
+config,pooled_MAPE_%,lift_vs_baseline_%
+baseline (no exog),7.86,0.0
++ is_holiday only,7.789,-0.071
++ heavy_rain only,7.696,-0.164
++ temp_avg only,7.657,-0.203
++ is_holiday + heavy_rain,7.62,-0.24
++ all three,7.61,-0.25

@@ -53,9 +53,13 @@ case3-demand-pulse/
 │   ├── 04_forecast.ipynb           ← Mumbai 7-day forecast, walk-forward MAPE, production-monitoring plan
 │   ├── 05_deeper_cuts.ipynb        ← cuisine, restaurants, AOV + the surge-vs-delivery sanity check
 │   ├── 06_causal_sanity.ipynb      ← hour-exact propensity-score matching: surge's matched effect on delivery time
-│   └── 07_ab_design.ipynb          ← power analysis + pre-registration for the hour-18 A/B test
+│   ├── 07_ab_design.ipynb          ← power analysis + pre-registration for the hour-18 A/B test
+│   └── 08_exog_features.ipynb      ← SARIMAX with holiday + weather regressors, ablation table
 ├── app/
-│   └── streamlit_app.py            ← 7-page dashboard the Ops Head can play with
+│   └── streamlit_app.py            ← 10-page dashboard the Ops Head can play with
+│                                     (mobile-first responsive · TL;DR · Cells ·
+│                                      Cohorts · Cuisine · Sanity · PSM ·
+│                                      Forecast · Per-city · A/B Simulator)
 ├── outputs/
 │   ├── cells.csv                   ← (city, day-bucket, hour) cell table with classifications
 │   ├── top_waste_cells.csv         ← what to defuse first
@@ -68,9 +72,13 @@ case3-demand-pulse/
 ├── DECISIONS.md                    ← assumptions, trade-offs, de-scoped items
 ├── AUDIT.md                        ← every number in the submission, traced to a script that recomputes it
 ├── audit_truth.json                ← canonical numbers, locked. CI fails on drift
+├── STORY.md                        ← long-form (~2,000 word) writeup for portfolio readers
+├── docs/
+│   └── architecture.md             ← Mermaid system diagram + data contract
 ├── scripts/
 │   ├── canonical_audit.py          ← single source of truth — recomputes every claim
-│   └── export_pngs.py              ← deck-chart export utility
+│   ├── export_pngs.py              ← deck-chart export utility
+│   └── synthesize_exog.py          ← generates Mumbai weather + India holiday panels for NB08
 ├── tests/                          ← pytest suite: data-quality + audit-lock contracts
 ├── .github/workflows/ci.yml        ← lint + tests + audit lock + notebook execution + Streamlit boot
 └── requirements.txt

@@ -42,3 +42,19 @@ def test_ab_power_present():
 def test_audit_truth_present():
     assert (ROOT / "audit_truth.json").exists(), \
         "audit_truth.json missing. Run: python scripts/canonical_audit.py --write"
+
+
+def test_exog_outputs_present():
+    """NB08 augmented forecast + ablation."""
+    assert (OUT / "forecast_augmented_mape.csv").exists(), \
+        "outputs/forecast_augmented_mape.csv missing — re-run NB08."
+    assert (OUT / "exog_ablation.csv").exists(), \
+        "outputs/exog_ablation.csv missing — re-run NB08."
+
+
+def test_exog_data_present():
+    """Synthetic weather + holiday panels used by NB08."""
+    assert (ROOT / "data" / "mumbai_weather_2025q1.csv").exists(), \
+        "Weather panel missing. Run: python scripts/synthesize_exog.py"
+    assert (ROOT / "data" / "india_holidays_2025q1.csv").exists(), \
+        "Holiday panel missing. Run: python scripts/synthesize_exog.py"

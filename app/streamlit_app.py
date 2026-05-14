@@ -22,7 +22,62 @@ st.set_page_config(
     page_title="Demand Pulse · Surge Policy",
     page_icon="📈",
     layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        "Get help": "https://github.com/tbm26shridharbhat-svg/case3-demand-pulse",
+        "Report a bug": "https://github.com/tbm26shridharbhat-svg/case3-demand-pulse/issues",
+        "About": "Demand Pulse — Case 3 surge-policy investigation. "
+                 "See README.md for the analytical story.",
+    },
 )
+
+# ---------- mobile-first responsive CSS ----------
+# Streamlit auto-stacks columns below ~640px; this CSS tightens type, spacing,
+# and table behaviour so every one of the 10 dashboard pages reads cleanly on
+# a 375px-wide phone (iPhone SE / smaller Android). Verified at:
+#   - 375 × 667 (mobile portrait)
+#   - 768 × 1024 (tablet portrait)
+#   - 1440 × 900 (desktop)
+st.markdown("""
+<style>
+/* Tables horizontal scroll on narrow viewports */
+.stDataFrame, .stTable { overflow-x: auto !important; }
+
+/* Plotly charts get a sensible minimum height on mobile */
+.js-plotly-plot { min-height: 320px; }
+
+/* Narrow phones — tighten spacing and shrink display type */
+@media (max-width: 640px) {
+  .main .block-container {
+    padding-top: 1.0rem !important;
+    padding-bottom: 2rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  .stApp h1 { font-size: 1.5rem !important; line-height: 1.3 !important; }
+  .stApp h2 { font-size: 1.2rem !important; }
+  .stApp h3 { font-size: 1.05rem !important; }
+  [data-testid="stMetricValue"] { font-size: 1.4rem !important; }
+  [data-testid="stMetricLabel"] { font-size: 0.75rem !important; }
+
+  /* Sidebar — narrower on mobile, less cramped nav */
+  [data-testid="stSidebar"] { min-width: 240px !important; max-width: 280px !important; }
+}
+
+/* Tablet refinements */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .stApp h1 { font-size: 1.85rem !important; }
+  [data-testid="stMetricValue"] { font-size: 1.6rem !important; }
+}
+
+/* Print-friendly view (Cmd+P → Save as PDF works cleanly) */
+@media print {
+  [data-testid="stSidebar"], header, footer { display: none !important; }
+  .main .block-container { max-width: 100% !important; padding: 0.5cm !important; }
+  .stPlotlyChart { page-break-inside: avoid; }
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 # ---------- data loading ----------
@@ -82,7 +137,8 @@ page = st.sidebar.radio(
      "Sanity Check — is surge buying speed?",
      "Causal — propensity-score matching",
      "7-Day Forecast",
-     "Per-City Forecasts"],
+     "Per-City Forecasts",
+     "A/B Test Simulator"],
 )
 
 st.sidebar.divider()
@@ -595,6 +651,199 @@ deployment decision, not a single-model decision.
         fc_wide.round(0).astype(int),
         use_container_width=True,
     )
+
+
+# ===========================================================
+# Page 10 — A/B Test Simulator (Tier 2 #1)
+# ===========================================================
+elif page == "A/B Test Simulator":
+    from scipy import stats as _stats
+
+    st.title("A/B Test Simulator")
+    st.caption(
+        "Notebook 07's power analysis, made interactive. Plug in your test parameters; "
+        "the simulator tells you required sample size, achievable power, and runs a "
+        "1,000-trial Monte Carlo to show how the test will actually behave."
+    )
+
+    st.subheader("Inputs")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        baseline_acc = st.slider("Baseline acceptance rate", 0.50, 0.95, 0.80, 0.01,
+                                 help="What % of orders currently get accepted by riders.")
+        lift_pp = st.slider("Expected lift (pp)", 0.01, 0.20, 0.04, 0.005,
+                            help="Hypothesised improvement, in percentage points.")
+    with c2:
+        orders_per_day = st.number_input("Orders/day in the test window",
+                                         min_value=1, max_value=10000, value=17, step=1,
+                                         help="Mumbai hour-18 7-day window: ~17 orders/day. "
+                                              "Default matches Notebook 07.")
+        duration_days = st.slider("Test duration (days)", 7, 90, 14, 1)
+    with c3:
+        alpha = st.select_slider("α (Bonferroni-corrected)",
+                                 options=[0.05, 0.025, 0.0167, 0.01, 0.005],
+                                 value=0.0167,
+                                 help="0.0167 = 0.05 / 3 outcomes (Bonferroni).")
+        target_power = st.slider("Target power", 0.50, 0.95, 0.80, 0.05)
+
+    treated_acc = min(baseline_acc + lift_pp, 0.999)
+    n_per_arm = int(orders_per_day * duration_days / 2)
+
+    # === Required N (closed form) ===
+    z_alpha = _stats.norm.ppf(1 - alpha / 2)
+    z_beta = _stats.norm.ppf(target_power)
+    p_bar = (baseline_acc + treated_acc) / 2
+    required_n = int(np.ceil(((z_alpha * np.sqrt(2 * p_bar * (1 - p_bar)) +
+                               z_beta * np.sqrt(baseline_acc * (1 - baseline_acc) +
+                                                treated_acc * (1 - treated_acc))) / lift_pp) ** 2))
+
+    # === Achieved power at the configured N ===
+    se = np.sqrt(baseline_acc * (1 - baseline_acc) / n_per_arm +
+                 treated_acc * (1 - treated_acc) / n_per_arm)
+    z_obs_thresh = (treated_acc - baseline_acc) / se
+    achieved = float(_stats.norm.cdf(z_obs_thresh - z_alpha))
+
+    days_for_required = int(np.ceil(2 * required_n / orders_per_day))
+
+    st.subheader("Results")
+    r1, r2, r3, r4 = st.columns(4)
+    r1.metric("Required N / arm", f"{required_n:,}",
+              delta=f"for {target_power:.0%} power", delta_color="off")
+    r2.metric("Achieved N / arm at {} days".format(duration_days), f"{n_per_arm:,}",
+              delta=f"{'✓ enough' if n_per_arm >= required_n else '✗ short'}",
+              delta_color="normal" if n_per_arm >= required_n else "inverse")
+    r3.metric("Achieved power", f"{achieved:.1%}",
+              delta=f"vs target {target_power:.0%}",
+              delta_color="normal" if achieved >= target_power else "inverse")
+    r4.metric("Days needed for full power",
+              f"{days_for_required}" if days_for_required < 365 * 5 else "5y+",
+              delta="at current order rate", delta_color="off")
+
+    if achieved < target_power:
+        st.warning(
+            f"**Test is under-powered.** With {n_per_arm:,} orders/arm at α={alpha}, "
+            f"power to detect a +{lift_pp:.0%} lift is only **{achieved:.1%}** "
+            f"— far below the {target_power:.0%} target. Options: extend duration "
+            f"to **{days_for_required} days**, increase the per-day order rate, "
+            f"or accept a lower MDE."
+        )
+    else:
+        st.success(
+            f"**Test has adequate power.** {n_per_arm:,} orders/arm achieves "
+            f"**{achieved:.1%}** power vs the {target_power:.0%} target."
+        )
+
+    st.divider()
+
+    # === Power curve as a function of lift ===
+    st.subheader("Power curve at the configured sample size")
+    lifts = np.linspace(0.005, 0.20, 80)
+    powers = []
+    for lf in lifts:
+        t = min(baseline_acc + lf, 0.999)
+        s = np.sqrt(baseline_acc * (1 - baseline_acc) / n_per_arm +
+                    t * (1 - t) / n_per_arm)
+        powers.append(float(_stats.norm.cdf((t - baseline_acc) / s - z_alpha)))
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=lifts * 100, y=powers, mode="lines",
+                             line=dict(color=COLORS["WASTE"], width=3),
+                             name="achieved power"))
+    fig.add_hline(y=target_power, line=dict(color="black", dash="dash", width=2),
+                  annotation_text=f"target {target_power:.0%}", annotation_position="bottom right")
+    fig.add_vline(x=lift_pp * 100, line=dict(color=COLORS["SUPPLY_GAP"], dash="dot", width=2),
+                  annotation_text=f"your target lift = +{lift_pp:.0%}",
+                  annotation_position="top right")
+    fig.update_layout(
+        title=f"Power vs lift, at N={n_per_arm:,} per arm and α={alpha}",
+        xaxis_title="lift (percentage points)", yaxis_title="achieved power",
+        xaxis=dict(tickformat=".0f", ticksuffix="pp"),
+        yaxis=dict(tickformat=".0%", range=[0, 1]),
+        height=420,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # === Monte Carlo: 1,000 simulated trials ===
+    st.divider()
+    st.subheader("Monte Carlo — 1,000 simulated trials at your settings")
+
+    rng = np.random.default_rng(42)
+    n_trials = 1000
+    p_values = np.empty(n_trials)
+    effect_estimates = np.empty(n_trials)
+
+    for i in range(n_trials):
+        c_sample = rng.binomial(1, baseline_acc, n_per_arm)
+        t_sample = rng.binomial(1, treated_acc, n_per_arm)
+        p_c = c_sample.mean()
+        p_t = t_sample.mean()
+        p_pool = (c_sample.sum() + t_sample.sum()) / (2 * n_per_arm)
+        se_test = np.sqrt(p_pool * (1 - p_pool) * (2 / n_per_arm))
+        if se_test > 0:
+            z = (p_t - p_c) / se_test
+            p_values[i] = 2 * (1 - _stats.norm.cdf(abs(z)))
+        else:
+            p_values[i] = 1.0
+        effect_estimates[i] = p_t - p_c
+
+    detection_rate = (p_values < alpha).mean()
+
+    cc1, cc2, cc3 = st.columns(3)
+    cc1.metric("Trials where p < α", f"{int((p_values < alpha).sum()):,} / {n_trials:,}",
+               delta=f"{detection_rate:.1%} detection rate", delta_color="off")
+    cc2.metric("Mean estimated lift", f"{effect_estimates.mean() * 100:+.2f}pp",
+               delta=f"true: +{lift_pp * 100:.1f}pp", delta_color="off")
+    cc3.metric("Std of effect estimate", f"{effect_estimates.std() * 100:.2f}pp",
+               delta="Monte Carlo noise", delta_color="off")
+
+    sim_fig = go.Figure()
+    sim_fig.add_trace(go.Histogram(x=effect_estimates * 100, nbinsx=40,
+                                   marker=dict(color=COLORS["SUPPLY_GAP"]),
+                                   opacity=0.85, name="estimated lift"))
+    sim_fig.add_vline(x=lift_pp * 100, line=dict(color=COLORS["WASTE"], width=3),
+                      annotation_text=f"true effect +{lift_pp * 100:.1f}pp",
+                      annotation_position="top right")
+    sim_fig.add_vline(x=0, line=dict(color="black", dash="dot"),
+                      annotation_text="null = 0", annotation_position="top left")
+    sim_fig.update_layout(
+        title="Distribution of estimated lifts across 1,000 simulated trials",
+        xaxis_title="estimated lift (percentage points)",
+        yaxis_title="trials", height=420,
+    )
+    st.plotly_chart(sim_fig, use_container_width=True)
+
+    st.info(
+        "**How to read this.** The histogram shows where the test would land if you "
+        "ran it 1,000 times. The wider the spread, the noisier the estimate — so if "
+        "the histogram extends through zero, plenty of trials will fail to reject the "
+        "null even when the true effect is non-zero. That's what 'under-powered' means "
+        "visually."
+    )
+
+    st.divider()
+    st.subheader("Recommended next step based on these inputs")
+    if achieved >= target_power:
+        st.markdown(
+            f"- **Ship the test as configured.** {duration_days} days at the current "
+            f"order rate gives you {achieved:.0%} power. Pre-register the +{lift_pp:.0%} "
+            f"lift target before day 0."
+        )
+    elif days_for_required <= 90:
+        st.markdown(
+            f"- **Extend to {days_for_required} days.** Same scope, same arms — just "
+            f"more time. Reaches {target_power:.0%} power."
+        )
+    else:
+        st.markdown(
+            f"- **The test as configured is structurally under-powered.** Even running "
+            f"for {days_for_required} days hits {target_power:.0%} power. Three honest options:\n"
+            f"  1. **Pivot the primary outcome** to delivery time (continuous, lower variance, "
+            f"     much higher power per observation — see Notebook 07 §3).\n"
+            f"  2. **Widen the test scope** — multi-city, wider hour window. 3× order rate "
+            f"     ≈ 1/3 the duration.\n"
+            f"  3. **Accept a larger MDE.** Detecting a +{(lift_pp * 1.5) * 100:.0f}pp lift "
+            f"     instead of +{lift_pp * 100:.0f}pp roughly halves the required N."
+        )
 
     st.divider()
     st.subheader("Forecast table (April 1–7, 2025)")

@@ -36,6 +36,19 @@ The hour-exact estimate and the NB05 within-peak-hour mean agree to within 0.03 
 
 **Implication:** delivery time is the only outcome the 14-day pilot can statistically gate on. Acceptance graduates to a follow-up 90-day run if the 14-day pilot survives.
 
+### Notebook 08 — exog-augmented forecast (SARIMAX vs SARIMA baseline)
+
+| Configuration | Pooled MAPE | Δ vs baseline |
+|---|---|---|
+| SARIMA (no exog) | 7.86% | — |
+| + `is_holiday` only | 7.79% | −0.07 pp |
+| + `heavy_rain` only | 7.70% | −0.16 pp |
+| + `temp_avg` only | 7.66% | −0.20 pp |
+| + holiday + rain | 7.62% | −0.24 pp |
+| **SARIMAX with all three** | **7.61%** | **−0.25 pp (3% relative)** |
+
+Holt-Winters at 7.14% still wins overall — the exog SARIMAX (7.61%) doesn't close the gap. Honest call: in Q1 (dry season, sparse holidays), weather features deliver marginal lift; re-test on monsoon-window data before deciding whether to ship the IMD feed in production. Holiday flag is cheap and worth shipping.
+
 ### Notebook 04 §7 — per-city Holt-Winters generalisation
 
 | City | mean/day | naïve MAPE | HW MAPE | HW lift |

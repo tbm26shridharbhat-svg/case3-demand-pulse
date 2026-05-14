@@ -1,0 +1,3 @@
+estimator,mumbai_mape_%,notes
+sarima_baseline,7.86,"SARIMA(1,1,1)(1,1,1,7), no exog"
+sarimax_augmented,7.61,SARIMAX with is_holiday + heavy_rain + temp_avg as exog

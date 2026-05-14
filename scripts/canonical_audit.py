@@ -177,6 +177,14 @@ T["psm_hour_exact_ci_low"] = round(float(np.percentile(boot, 2.5)), 3)
 T["psm_hour_exact_ci_high"] = round(float(np.percentile(boot, 97.5)), 3)
 T["psm_n_pairs"] = int(len(flat))
 
+# Notebook 08 — exog-augmented forecast MAPE (reads committed CSV; the notebook
+# re-fits each time and writes this file)
+exog_csv = ROOT / "outputs" / "forecast_augmented_mape.csv"
+if exog_csv.exists():
+    aug = pd.read_csv(exog_csv).set_index("estimator")["mumbai_mape_%"]
+    T["mumbai_sarima_baseline_mape_%"] = round(float(aug["sarima_baseline"]), 2)
+    T["mumbai_sarimax_augmented_mape_%"] = round(float(aug["sarimax_augmented"]), 2)
+
 # Per-city forecast MAPEs (Notebook 04 §7)
 def _naive(t): return pd.Series(t.iloc[-7:].values)
 def _hw(t):

@@ -81,6 +81,8 @@
   "psm_hour_exact_ci_low": -0.193,
   "psm_hour_exact_ci_high": 0.458,
   "psm_n_pairs": 11937,
+  "mumbai_sarima_baseline_mape_%": 7.86,
+  "mumbai_sarimax_augmented_mape_%": 7.61,
   "city_bangalore_naive_mape_%": 10.66,
   "city_bangalore_hw_mape_%": 9.08,
   "city_chennai_naive_mape_%": 16.5,
