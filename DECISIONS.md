@@ -23,20 +23,51 @@
 ## What I de-scoped and why
 
 - **Hourly forecast.** Brief allowed hourly *or* daily. With 90 days of data, the hourly SARIMA would have huge confidence intervals and the daily model is what the Ops Head actually wants for staffing decisions. Documented in Notebook 04.
-- **A/B test design memo.** The recommendation surfaces an A/B but doesn't carry it to a formal MDE / sample-size memo. ~2 hours of focused work; reserved for the second case.
-- **Per-city forecasts for all 7 cities.** Notebook 03's null result justified single-city scope: the demand shapes generalise.
-- **Holiday / weather features.** Adding holiday flags would have moved daily MAPE by perhaps 1–2 percentage points. The production-monitoring plan in Notebook 04 covers the gap operationally (suppress alarms on holiday weeks).
 - **Confidence intervals in the dashboard.** Point forecasts are easier to act on; CIs are noise in an Ops Head conversation. Two lines of code away if needed.
 - **Restaurant-level targeting.** The supplied dataset shows uniform volume across the 800 restaurants (top-100 own only 15% — a synthetic-data tell, flagged in Notebook 05 §2). Restaurant-level cuts cannot be shipped from this data and are deferred until real production logs are available.
-- **Causal-style modelling of surge → delivery time.** Notebook 05 §4 establishes the observational finding (surge is not associated with faster delivery within hour) but does not attempt a propensity-score or matched-pairs analysis. The honest next step is the follow-up A/B documented in the exec summary, not a more sophisticated retrospective model.
+- **A fully causal claim on surge → delivery time.** Notebook 06 closes the gap as far as observational data permits (hour-exact PSM with bootstrap CI). Unobservable confounders remain — most plausibly distance-to-drop, rider-density-at-pickup, kitchen-prep latency. The follow-up A/B in Slide 5 Action 4 is the only thing that turns observation into evidence.
+
+## What I added beyond the brief
+
+The brief asks for: notebook, deck, exec summary, forecast CSV. Those are required. Below the line, I shipped four more things because the analysis pushed me there:
+
+- **Notebook 06 — hour-exact propensity-score matching** with bootstrap CI on the surge → delivery question. Turns NB05's qualitative within-peak observation into a formal matched ATT of **+0.13 min, 95% CI [−0.19, +0.46]** across 11,937 pairs. Includes a standard-PSM cautionary tale (biased to +0.65 by cross-hour matches) so the methodological choice is defensible.
+- **Notebook 07 — A/B power analysis + pre-registration**. Caught that the original recommended +3pp acceptance threshold is severely under-powered at the dataset's volume. Pivoted to delivery-time-primary, acceptance-descriptive, with a verbatim pre-registration document ready to commit to the experiment platform on day 0.
+- **Notebook 04 §7 — per-city Holt-Winters generalisation**. Holt-Winters wins 6/7 cities; **Kolkata is the exception** (HW worse than seasonal-naïve by 0.5%). Production rule that fell out: per-city model deployment, with Kolkata on the naïve baseline.
+- **Notebook 08 — SARIMAX with holiday + weather exog features**. Drops Mumbai SARIMA MAPE from 7.86% to 7.61%. Holt-Winters at 7.14% still wins overall — holiday flag worth shipping, weather feed deferred until monsoon data.
+- **Reproducibility layer**: `audit_truth.json` (98-key lock), `scripts/canonical_audit.py --verify`, 18 pytest tests, GitHub Actions CI. Any code change that drifts a number breaks the build.
 
 ## What I'd do differently with another day
 
-- **Per-city Holt-Winters in parallel, served via a model-registry pattern.** Just to prove the generalisation claim from Notebook 03 with real numbers.
-- **A causal-style analysis on existing surge fire events** — does surge actually reduce delivery-time-min in the data, or is it just labeled noise? Even a simple matched-pairs comparison would be a useful sanity check on whether the policy is buying what it thinks it's buying.
-- **Spatial dimension.** The dataset has restaurant_id but no lat/lon. With even a coarse geo, the "supply gap" finding becomes 10x more actionable (which neighbourhoods in Mumbai are gap-hot at hour 18?).
+- **Spatial dimension.** The dataset has restaurant_id but no lat/lon. With even a coarse geo, the "supply gap" finding becomes 10× more actionable (which neighbourhoods in Mumbai are gap-hot at hour 18?).
+- **Propensity-score-weighted regression as a robustness check on Notebook 06.** Hour-exact matching + within-hour propensity is one estimator; an IPTW-weighted regression with the same covariates would be a useful second opinion. I'd expect the same answer.
 - **Productionise the dashboard** with proper auth (Streamlit Cloud + Google SSO) rather than the free HF Spaces deployment, so it can be the durable companion to a Monday-morning ops meeting.
+- **Cuisine substitution analysis.** If we suppress surge for one cuisine, does demand shift to another? The dataset has enough cuisine variety to test this; I didn't have time to set up the conditional analysis carefully.
 
-## AI assistant usage (for transparency, per the brief's FAQ)
+## What I'd actually say in a meeting
 
-I used Claude Code to scaffold the notebook builder pattern (`nbformat`-driven), write the initial Streamlit page wiring, and review the notebook narratives. Every analytical decision — cell granularity, percentile-rank framing, the honest call on the cohort null result, the choice to lead with the supply-gap finding rather than overstate waste — was mine, and I can defend any line of code or argument on a video walkthrough.
+The decisions log above is the polished version. Here's the same content in the voice I'd use if you asked me to walk through this over coffee — less tidy, more honest.
+
+- **On the WASTE class definition.** The bottom-50%-demand-AND-top-50%-surge cell definition is conservative. A wider definition ("any surge in below-median demand cells") would have given me a ₹10.6k / 90d headline number instead of ₹7,860 — and for a moment I wanted that bigger number because bigger numbers tell better stories. I caught the impulse. The class definition stayed.
+- **On dropping the cohort hypothesis.** I genuinely walked in believing a tier system would win. The maximum pairwise distance came back at 0.052 and I sat with that for a while. Publishing a null result is rare in case studies because the implicit incentive is to make every angle "work." This one mattered more honestly null than fake-tiered.
+- **On Mumbai instead of Bangalore.** Embarrassing. I assumed Mumbai was the biggest city for the forecast and only found out it was third when the audit script printed volumes. The fix was to re-run on all three top cities and pick on backtest evidence (Mumbai won). The audit lock paid for itself the day it was written.
+- **On the PSM call.** Standard PSM gave +1.31 min and I knew it was wrong before I knew why. Hour-exact matching brought it to +0.13 min. The lesson — *propensity overlap doesn't mean comparable units* — is one I'll carry into the next causal analysis I do.
+- **On the A/B test pivot.** The original deck draft promised an acceptance-rate lift the dataset can't statistically support at 14 days. Discovering this in the power analysis was uncomfortable; rewriting the recommendation around delivery-time-primary turned out to be the stronger story anyway. Real-world Swiggy-scale data wouldn't have this constraint at all, but on this dataset the recommendation has to respect the maths.
+- **On the AI use.** I used Claude Code throughout — for scaffolding, prose review, and the audit infrastructure. Every analytical decision is mine and I can defend any of them on the call. The disclosure block below is deliberate, not boilerplate.
+
+## AI assistant usage (full disclosure, per the brief's FAQ)
+
+What Claude Code did:
+- Scaffolded the notebook-builder pattern (`nbformat`-driven, one Python script per notebook). The cell *structure* is templated; the prose inside each cell is mine, edited and re-edited.
+- Wrote initial Streamlit page wiring (page routing, the `@st.cache_data` pattern, layout boilerplate). All page content, copy, and analytical computations are mine.
+- Polished prose in README, exec_summary, and the deck markdown. I edited every paragraph.
+- Wrote the audit-lock script and the pytest harness from my spec. I review every assertion.
+- Generated the deck slides via Claude Design, from a prompt I wrote and iterated on. Each slide's content (numbers, words, layout intent) was specified by me before generation.
+
+What I did:
+- Every analytical decision — the reframe of the brief, the within-city percentile choice, the WASTE class definition, killing the cohort hypothesis honestly, the choice to lead with the supply-gap finding rather than overstate waste, the Mumbai-not-Bangalore switch on backtest evidence, the hour-exact PSM choice over standard PSM, pivoting the A/B to delivery-time-primary on power-analysis grounds, the per-city Kolkata exception.
+- The verification work — running `canonical_audit.py` and cross-referencing every number in every document until 98 keys reconciled.
+- The voice of the writeup (`STORY.md`, `NOTES.md`, this document's "What I'd actually say in a meeting" section).
+- The Q&A defence: I can walk through any notebook line-by-line on the demo call without re-reading it.
+
+If the panel wants to verify ownership on any specific decision, I'm happy to talk through the trade-off in real time.

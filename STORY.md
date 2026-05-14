@@ -4,6 +4,18 @@
 
 ---
 
+## Why this brief landed for me
+
+A small confession before the analysis. I have spent the last several months at Swiggy — external, mostly observational, but close enough to a real food-delivery operation to have spent more than a few mornings staring at hour-of-day dashboards that look exactly like the ones inside this brief. The "Ops Head" voice in the case study isn't a hypothetical to me. I have sat through versions of that meeting. *We're paying surge in hours that don't feel peak* is something I have heard, almost word for word, more than once.
+
+In parallel I am building **Ahar** — a restaurant-inventory SaaS — and that side of the work has made me unusually paranoid about anything involving the gap between *what the policy says is happening* and *what the operation actually does*. The hour-18 dinner ramp-up that ends up being the headline of this submission isn't an abstract finding for me. It's the kind of thing you spot in a real merchant dashboard at 6:05pm when half a dozen restaurants in Lower Parel are getting backed up and the surge hasn't kicked in yet. The case-study dataset doesn't give us neighbourhood-level data, but the *shape* of the problem reads like something I've watched live.
+
+I bring that up because it shapes how this submission is constructed. The questions I push on — *is the surge actually buying anything? are we paying for visibility or for speed? does the policy even need a tier system?* — are the questions I'd have wanted to push on if I were on the team that owned the rule. Not because they are clever, but because they are the questions an operator would ask if they were honest. The deck and the notebooks are the answer-shape that fits that question-shape.
+
+Everything below is what happens when you read a brief twice, refuse to let the obvious answer be the answer, and try to leave behind a thing that the Ops Head could actually defend to her CFO on Monday.
+
+---
+
 ## The brief
 
 A regional Indian food-delivery company had been growing fast. The Ops Head was uneasy. *"We're over-paying surge incentives to riders during hours that aren't actually peak,"* she suspected. *"Peak demand is more nuanced than the current rule."* I had one working day, 50,000 rows of orders, and one constraint: tell her something she could act on Monday morning.
