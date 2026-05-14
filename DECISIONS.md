@@ -27,6 +27,8 @@
 - **Per-city forecasts for all 7 cities.** Notebook 03's null result justified single-city scope: the demand shapes generalise.
 - **Holiday / weather features.** Adding holiday flags would have moved daily MAPE by perhaps 1–2 percentage points. The production-monitoring plan in Notebook 04 covers the gap operationally (suppress alarms on holiday weeks).
 - **Confidence intervals in the dashboard.** Point forecasts are easier to act on; CIs are noise in an Ops Head conversation. Two lines of code away if needed.
+- **Restaurant-level targeting.** The supplied dataset shows uniform volume across the 800 restaurants (top-100 own only 15% — a synthetic-data tell, flagged in Notebook 05 §2). Restaurant-level cuts cannot be shipped from this data and are deferred until real production logs are available.
+- **Causal-style modelling of surge → delivery time.** Notebook 05 §4 establishes the observational finding (surge is not associated with faster delivery within hour) but does not attempt a propensity-score or matched-pairs analysis. The honest next step is the follow-up A/B documented in the exec summary, not a more sophisticated retrospective model.
 
 ## What I'd do differently with another day
 

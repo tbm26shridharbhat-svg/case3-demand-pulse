@@ -78,6 +78,8 @@ page = st.sidebar.radio(
      "Policy Alignment Map",
      "Surge Waste & Supply Gap (cells)",
      "City Patterns",
+     "Cuisine Cuts",
+     "Sanity Check — is surge buying speed?",
      "7-Day Forecast"],
 )
 
@@ -309,7 +311,125 @@ small late-night weekend extension for Chennai and Kolkata only. Do not build co
 
 
 # ===========================================================
-# Page 5 — Forecast
+# Page 5 — Cuisine cuts
+# ===========================================================
+elif page == "Cuisine Cuts":
+    st.title("Cuisine — does it change the recommendation?")
+    st.caption("Notebook 05 §1. Cuisine volume is flat (~11% share each), but the dinner ramp-up has a cuisine signature.")
+
+    cuisine_summary = (df.groupby("cuisine")
+                         .agg(orders=("order_id", "size"),
+                              surge_rate=("surge_applied", "mean"),
+                              avg_value=("order_value", "mean"),
+                              avg_delivery=("delivery_time_min", "mean"))
+                         .sort_values("orders", ascending=False))
+    cuisine_summary["share_%"] = (cuisine_summary.orders /
+                                  cuisine_summary.orders.sum() * 100).round(1)
+
+    st.subheader("Volume, surge rate, basket size, delivery time — per cuisine")
+    st.dataframe(
+        cuisine_summary.reset_index().style.format({
+            "surge_rate": "{:.1%}", "avg_value": "₹{:.0f}",
+            "avg_delivery": "{:.1f} min", "share_%": "{:.1f}%"}),
+        use_container_width=True, hide_index=True,
+    )
+
+    st.divider()
+    st.subheader("Who drives hour-18?")
+    st.caption("Cuisine share at hour 18 vs overall share. Positive lift = the cuisine over-indexes at 6pm.")
+    hr18 = df[df.hour == 18].cuisine.value_counts(normalize=True) * 100
+    allsh = df.cuisine.value_counts(normalize=True) * 100
+    lift = (hr18 - allsh).round(2).sort_values(ascending=False).reset_index()
+    lift.columns = ["cuisine", "lift_pp"]
+
+    fig = px.bar(lift, x="cuisine", y="lift_pp", height=380,
+                 labels={"lift_pp": "share lift at hour 18 (percentage points)"},
+                 color="lift_pp",
+                 color_continuous_scale=[(0, "#1f77b4"), (0.5, "#cccccc"), (1, "#d62728")])
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("**Beverages and North Indian over-index** at hour 18 — they're the dinner-ramp signature. "
+                "The hour-18 A/B test should stratify acceptance metrics by cuisine to confirm the boost lands there.")
+
+    st.divider()
+    st.subheader("AOV by cuisine")
+    aov = df.groupby("cuisine").order_value.mean().sort_values(ascending=False).reset_index()
+    fig = px.bar(aov, x="cuisine", y="order_value", height=360,
+                 labels={"order_value": "AOV (₹)"},
+                 color="order_value", color_continuous_scale="Blues")
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("Sit-down style (Continental, Italian) carries ₹500+ AOV; snack-style (Beverages, Desserts) trails ~₹170.")
+
+
+# ===========================================================
+# Page 6 — Sanity check on surge
+# ===========================================================
+elif page == "Sanity Check — is surge buying speed?":
+    st.title("Is the surge policy actually buying faster delivery?")
+    st.caption("Notebook 05 §4. The most consequential finding of this investigation.")
+
+    s1 = df[df.surge_applied == 1].delivery_time_min.mean()
+    s0 = df[df.surge_applied == 0].delivery_time_min.mean()
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Mean delivery, surge orders", f"{s1:.2f} min")
+    c2.metric("Mean delivery, non-surge orders", f"{s0:.2f} min")
+    c3.metric("Pooled difference", f"{s1 - s0:+.2f} min",
+              delta=f"{(s1/s0 - 1)*100:+.1f}%", delta_color="inverse")
+
+    st.warning(
+        "**Pooled, surge orders are ~9% slower than non-surge orders.** "
+        "Pooling is confounded by hour (surge fires in busy hours, which are slower for everyone). "
+        "The honest comparison is *within-hour*, below."
+    )
+
+    ph = df.groupby(["hour", "surge_applied"]).delivery_time_min.mean().unstack().round(2)
+    ph.columns = ["no_surge", "surge"]
+    ph["diff_min"] = (ph.surge - ph.no_surge).round(2)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=ph.index, y=ph.no_surge, mode="lines+markers",
+                             name="no surge", line=dict(color="#1f77b4", width=3)))
+    fig.add_trace(go.Scatter(x=ph.index, y=ph.surge, mode="lines+markers",
+                             name="surge applied", line=dict(color="#d62728", width=3)))
+    fig.update_layout(
+        title="Within-hour delivery-time comparison",
+        xaxis_title="hour of day", yaxis_title="mean delivery time (min)",
+        xaxis=dict(dtick=2), height=460,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("Within-hour difference table")
+    st.dataframe(ph.reset_index().style.format(
+        {"no_surge": "{:.2f}", "surge": "{:.2f}", "diff_min": "{:+.2f}"}),
+        use_container_width=True, hide_index=True,
+    )
+
+    st.markdown("""
+### The honest read
+
+- **During peak hours (12, 13, 19, 20, 21):** surge and non-surge orders have **near-identical** mean delivery time.
+  The surge incentive does not translate to a measurable speedup at the times surge actually fires.
+- **During off-peak hours:** surge orders are **slower** — by up to 8 min at hour 0.
+
+This is **observational, not causal** — surge fires deterministically by hour, so we cannot recover the
+counterfactual. But the data does **not** support the assumption that surge is buying faster delivery.
+
+### Consequence for the hour-18 A/B test
+
+Re-design with delivery time as a primary outcome:
+
+| Metric | Win condition |
+|---|---|
+| Rider acceptance rate, hour-18 window | ≥ +3 percentage points |
+| **Mean delivery time, hour-18 window** | **No worse than baseline, ideally −1 min** |
+| Total incentive cost per delivered order | ≤ +8% |
+
+If the boost lifts acceptance but not delivery time, **pre-register a follow-up A/B that *removes* surge
+from a small slice of peak-hour orders.** If removal doesn't hurt, the entire surge envelope is worth re-evaluating.
+""")
+
+
+# ===========================================================
+# Page 7 — Forecast
 # ===========================================================
 elif page == "7-Day Forecast":
     st.title("7-Day Forecast — Delhi")

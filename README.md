@@ -10,7 +10,7 @@ A one-day investigation into a regional food-delivery company's surge-incentive 
 
 ## TL;DR (one paragraph for the Ops Head)
 
-The current surge policy is **mostly aligned with demand** — ~96% of surge spend fires in above-median-demand cells within each city. The recoverable waste is real but modest (~₹3.5k/month at ₹20 per surge order). The **bigger operational lever is the dinner-ramp at hour 18**, where 3,683 pooled orders/hour see surge in only **5.7%** of cases vs **52%** at hour 19. A one-city A/B test on hour-18 surge is the recommended next step. The cohort hypothesis we walked in with — that cities have meaningfully different demand shapes — was **not supported** by the data; only Chennai-weekend and Kolkata-weekend deviate, and they need a small targeted late-night extension rather than a tier system.
+The current surge policy is **mostly aligned with demand** — ~96% of surge spend fires in above-median-demand cells within each city. The recoverable waste is real but modest (~₹3.5k/month at ₹20 per surge order). The **bigger operational lever is the dinner-ramp at hour 18**, where 3,683 pooled orders/hour see surge in only **5.7%** of cases vs **52%** at hour 19 — A/B test recommended. The cohort hypothesis we walked in with — that cities have meaningfully different demand shapes — was **not supported** by the data; only Chennai-weekend and Kolkata-weekend deviate, and they need a small targeted late-night extension rather than a tier system. **And — the data does not support the assumption that surge is buying faster delivery**: within peak hours, surge and non-surge orders have near-identical delivery time (Notebook 05 §4). That single observation re-shapes how the hour-18 A/B should be designed.
 
 ## How to run locally
 
@@ -37,9 +37,10 @@ case3-demand-pulse/
 │   ├── 01_eda.ipynb                ← profile + reframe the question
 │   ├── 02_surge_waste.ipynb        ← the killer insight — waste vs supply-gap quantified in rupees
 │   ├── 03_city_cohorts.ipynb       ← cohort hypothesis tested and rejected (honest null result)
-│   └── 04_forecast.ipynb           ← Delhi 7-day forecast, walk-forward MAPE, production-monitoring plan
+│   ├── 04_forecast.ipynb           ← Delhi 7-day forecast, walk-forward MAPE, production-monitoring plan
+│   └── 05_deeper_cuts.ipynb        ← cuisine, restaurants, AOV + the surge-vs-delivery sanity check
 ├── app/
-│   └── streamlit_app.py            ← 5-page dashboard the Ops Head can play with
+│   └── streamlit_app.py            ← 7-page dashboard the Ops Head can play with
 ├── outputs/
 │   ├── cells.csv                   ← (city, day-bucket, hour) cell table with classifications
 │   ├── top_waste_cells.csv         ← what to defuse first
