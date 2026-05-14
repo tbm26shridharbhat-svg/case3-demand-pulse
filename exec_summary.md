@@ -14,7 +14,9 @@ We re-read this as: *"Where is the current surge policy firing when it shouldn't
 
 ### 1.  Don't change the lunch/dinner schedule. It mostly works.
 
-96% of your surge spend fires in **above-median-demand cells** within each city. The current policy looks like a binary "surge ON at 12–13 (lunch) and 19–21 (dinner), ~5% everywhere else," and the data agrees with that structure. There is ~₹3.5k/month of pure waste — small (4% of envelope), cleanable through targeted rule edits per `outputs/top_waste_cells.csv`, **but not where the real money is.**
+95.5% of your surge spend fires in **above-median-demand cells** within each city. The current policy looks like a binary "surge ON at 12–13 (lunch) and 19–21 (dinner), ~5% everywhere else," and the data agrees with that structure.
+
+Specifically, the **WASTE class** — cells that are below-median demand within their city *and* above-median surge fire rate — contains **393 surge events** over the 90-day window (**3.3% of the total 11,937 surge events**). At ₹20 per surge order that is **₹7,860 over 90 days, or ₹2,620/month**. Small. Cleanable through the rule edits in `outputs/top_waste_cells.csv`, **but not where the real money is.**
 
 ### 2.  Fix the dinner ramp-up at hour 18 — A/B test in one city first.
 
@@ -46,29 +48,29 @@ Recommendation: keep current surge active until 23:00 on Saturdays and Sundays i
 
 ---
 
-## Forecast (Delhi, Apr 1–7)
+## Forecast (Mumbai, Apr 1–7)
 
-Daily order count, Holt-Winters with weekly seasonality:
+Daily order count, Holt-Winters with weekly seasonality. Mumbai was chosen because among the top-3 cities by volume (Bangalore 10,776, Mumbai 10,022, Delhi 8,171), Mumbai produced the **lowest walk-forward MAPE** on a fair comparison — see Notebook 04 §1 and §3 for the per-city table.
 
 | Date | Forecast | Day |
 |---|---|---|
-| Apr 1 (Tue) | 95 | weekday |
-| Apr 2 (Wed) | 91 | weekday |
-| Apr 3 (Thu) | 89 | weekday |
-| Apr 4 (Fri) | 90 | weekday |
-| Apr 5 (Sat) | 91 | **weekend** |
-| Apr 6 (Sun) | 91 | **weekend** |
-| Apr 7 (Mon) | 84 | weekday |
+| Apr 1 (Tue) | 110 | weekday |
+| Apr 2 (Wed) | 109 | weekday |
+| Apr 3 (Thu) | 106 | weekday |
+| Apr 4 (Fri) | 106 | weekday |
+| Apr 5 (Sat) | 107 | **weekend** |
+| Apr 6 (Sun) | 111 | **weekend** |
+| Apr 7 (Mon) | 108 | weekday |
 
-**Accuracy (3-window walk-forward backtest):**
+**Accuracy (3-window walk-forward backtest, Mumbai):**
 
 | Model | Pooled MAPE | Weekday | Weekend |
 |---|---|---|---|
-| Seasonal-naive (baseline) | 11.0% | 11.8% | 9.0% |
-| Holt-Winters (**shipped**) | **8.6%** | **9.6%** | **6.1%** |
-| SARIMA | 9.0% | 10.0% | 6.5% |
+| Seasonal-naïve (baseline) | 10.5% | 10.9% | 9.4% |
+| Holt-Winters (**shipped**) | **7.1%** | **8.0%** | **5.1%** |
+| SARIMA | 7.9% | 9.0% | 5.1% |
 
-Holt-Winters beats the seasonal-naive baseline by ~22% relative. Production monitors for this model are listed in Notebook 04, §6 — five concrete alarms, all fit in a single Airflow DAG.
+Holt-Winters beats the seasonal-naïve baseline by **32% relative MAPE**. Production monitors for this model are listed in Notebook 04, §6 — five concrete alarms, all fit in a single Airflow DAG.
 
 ---
 
@@ -76,7 +78,7 @@ Holt-Winters beats the seasonal-naive baseline by ~22% relative. Production moni
 
 - We do not claim the policy is broken. **It mostly works.**
 - We do not claim the cohort thesis is real. **We tested it and rejected it.** This simplifies your action set rather than complicates it.
-- The rupee waste number assumes **₹20 per surge order**. If your real number is different, the magnitude scales linearly; the *share* (4% of envelope) is unit-free.
+- The rupee waste number assumes **₹20 per surge order**. If your real number is different, the magnitude scales linearly; the *share* (3.3% of surge envelope, or 4.5% if you broaden "waste" to any surge in below-median-demand cells regardless of surge rate) is unit-free.
 - The hour-18 recommendation is a **hypothesis**, not a guaranteed win. The A/B test is the way to find out without putting national spend at risk.
 - The delivery-time finding (§3) is **observational, not causal**. Surge fires deterministically by hour, so we cannot recover the counterfactual from the data alone. The follow-up A/B is the way to convert this observation into evidence.
 - Restaurant-level recommendations are **out of scope** because the supplied dataset shows uniform volume across all 800 restaurants (top-100 own only 15%). This pattern is unrealistic for production data and likely an artefact of synthetic generation. Re-do this analysis on real order logs and the top-restaurant cut becomes the most actionable lever in the deck.
@@ -90,5 +92,5 @@ Holt-Winters beats the seasonal-naive baseline by ~22% relative. Production moni
 - **The 10 cells to invest in first** — `outputs/top_gap_cells.csv`.
 - **The surge sanity-check finding** — `notebooks/05_deeper_cuts.ipynb` §4.
 - **Cuisine signal at hour 18** — `notebooks/05_deeper_cuts.ipynb` §1.2.
-- **The forecast** — `outputs/forecast.csv` (Apr 1–7, Delhi, daily).
+- **The forecast** — `outputs/forecast.csv` (Apr 1–7, Mumbai, daily).
 - **Interactive view** — Streamlit dashboard (7 pages), link in `README.md`.

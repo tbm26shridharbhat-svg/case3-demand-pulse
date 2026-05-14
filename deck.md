@@ -47,7 +47,7 @@ The whole investigation hangs on putting rupee numbers on the first two and an h
 | Slice | (city, day-bucket, hour) → 336 cells | ~150 orders/cell, statistically honest |
 | Rank | **Within-city** percentile of demand & surge | Mumbai's slow hour ≠ Pune's busy hour |
 | Classify | WASTE / SUPPLY_GAP / ALIGNED | Defensible to a non-analyst |
-| Forecast | Holt-Winters daily, walk-forward MAPE | Beats seasonal-naïve by 22%, one line to ship |
+| Forecast | Holt-Winters daily, walk-forward MAPE (Mumbai) | Beats seasonal-naïve by 32% relative, one line to ship |
 | Test cohorts | Hierarchical clustering on demand shape | Null result is also a result |
 | **Sanity check** | **Within-hour surge vs no-surge delivery time** | **Is the policy buying speed?** |
 
@@ -55,9 +55,9 @@ The whole investigation hangs on putting rupee numbers on the first two and an h
 
 ## 3.  Three findings on the data, before the punchline
 
-- **WASTE is small.** ~96% of surge spend fires in above-median-demand cells. Recoverable waste = **₹3.5k/month** at ₹20 per surge order. Cleanable; not the headline.
-- **SUPPLY GAP is real.** Hour 18 sees 3,683 pooled orders — peak-level demand — at only **5.7%** surge vs **52%** at hour 19. Cuisine signature: **Beverages & North Indian** over-index there.
-- **COHORTS — null result.** Tested. Rejected. Max pairwise distance across 14 (city, day-bucket) demand-shape vectors = **0.05**. Only Chennai-weekend and Kolkata-weekend deviate.
+- **WASTE is small.** 95.5% of surge spend fires in above-median-demand cells. The WASTE class carries 393 surge events / 90 days = **₹2,620/month** at ₹20 per surge order (3.3% of envelope). Cleanable; not the headline.
+- **SUPPLY GAP is real.** Hour 18 sees 3,683 pooled orders — peak-level demand — at only **5.7%** surge vs **52.1%** at hour 19. Cuisine signature: **Beverages (+1.1pp) & North Indian (+0.9pp)** over-index there.
+- **COHORTS — null result.** Tested. Rejected. Max pairwise distance across 14 (city, day-bucket) demand-shape vectors = **0.052**. Silhouette at k=3 = 0.358 but cluster sizes are 12+1+1 — not a tier system, a baseline plus two specific weekend outliers (Chennai, Kolkata).
 
 The next slide is the one that changes how Monday goes.
 
@@ -90,7 +90,7 @@ Pooled, surge orders are **9% *slower*** than non-surge (confounded by hour, but
 | 3 | Late-night weekend surge extension for Chennai + Kolkata only | Low | Slide 3 |
 | 4 | **Follow-up A/B**: *remove* surge from 5% of peak-hour orders, measure delivery time. If removal doesn't hurt → re-evaluate the whole envelope | High value, high decision risk | Slide 4 |
 
-Forecast: Holt-Winters MAPE **8.6%** vs 11.0% baseline · April 1–7 Delhi committed to `outputs/forecast.csv`.
+Forecast (Mumbai): Holt-Winters MAPE **7.1%** vs 10.5% seasonal-naïve baseline (32% relative improvement) · April 1–7 forecast committed to `outputs/forecast.csv`.
 
 <br>
 

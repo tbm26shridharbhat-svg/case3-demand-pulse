@@ -10,7 +10,7 @@ A one-day investigation into a regional food-delivery company's surge-incentive 
 
 ## TL;DR (one paragraph for the Ops Head)
 
-The current surge policy is **mostly aligned with demand** — ~96% of surge spend fires in above-median-demand cells within each city. The recoverable waste is real but modest (~₹3.5k/month at ₹20 per surge order). The **bigger operational lever is the dinner-ramp at hour 18**, where 3,683 pooled orders/hour see surge in only **5.7%** of cases vs **52%** at hour 19 — A/B test recommended. The cohort hypothesis we walked in with — that cities have meaningfully different demand shapes — was **not supported** by the data; only Chennai-weekend and Kolkata-weekend deviate, and they need a small targeted late-night extension rather than a tier system. **And — the data does not support the assumption that surge is buying faster delivery**: within peak hours, surge and non-surge orders have near-identical delivery time (Notebook 05 §4). That single observation re-shapes how the hour-18 A/B should be designed.
+The current surge policy is **mostly aligned with demand** — 95.5% of surge spend fires in above-median-demand cells within each city. The recoverable waste is small: the WASTE class (below-median demand AND above-median surge fire rate) carries **393 surge events over 90 days = ₹7,860 / ₹2,620 per month at ₹20 per surge order**. The **bigger operational lever is the dinner-ramp at hour 18**, where 3,683 pooled orders/hour see surge in only **5.7%** of cases vs **52.1%** at hour 19 — A/B test recommended. The cohort hypothesis we walked in with — that cities have meaningfully different demand shapes — was **not supported** by the data (max pairwise distance across 14 demand-shape vectors = 0.052); only Chennai-weekend and Kolkata-weekend deviate, and they need a small targeted late-night extension rather than a tier system. **And — the data does not support the assumption that surge is buying faster delivery**: within peak hours (12, 13, 19, 20, 21), surge and non-surge orders have delivery times within ±0.5 min of each other (Notebook 05 §4). That single observation re-shapes how the hour-18 A/B should be designed.
 
 ## How to run locally
 
@@ -37,7 +37,7 @@ case3-demand-pulse/
 │   ├── 01_eda.ipynb                ← profile + reframe the question
 │   ├── 02_surge_waste.ipynb        ← the killer insight — waste vs supply-gap quantified in rupees
 │   ├── 03_city_cohorts.ipynb       ← cohort hypothesis tested and rejected (honest null result)
-│   ├── 04_forecast.ipynb           ← Delhi 7-day forecast, walk-forward MAPE, production-monitoring plan
+│   ├── 04_forecast.ipynb           ← Mumbai 7-day forecast, walk-forward MAPE, production-monitoring plan
 │   └── 05_deeper_cuts.ipynb        ← cuisine, restaurants, AOV + the surge-vs-delivery sanity check
 ├── app/
 │   └── streamlit_app.py            ← 7-page dashboard the Ops Head can play with
@@ -46,11 +46,14 @@ case3-demand-pulse/
 │   ├── top_waste_cells.csv         ← what to defuse first
 │   ├── top_gap_cells.csv           ← what to invest in first
 │   ├── city_outliers.csv           ← Chennai-weekend, Kolkata-weekend
-│   ├── forecast.csv                ← April 1–7 Delhi forecast
+│   ├── forecast.csv                ← April 1–7 Mumbai forecast
 │   └── figures/                    ← all generated Plotly HTMLs
 ├── exec_summary.md                 ← one-page executive summary
 ├── deck.md                         ← 5-slide Marp markdown (render: `marp deck.md --pdf`)
 ├── DECISIONS.md                    ← assumptions, trade-offs, de-scoped items
+├── AUDIT.md                        ← every number in the submission, traced to a script that recomputes it
+├── scripts/
+│   └── canonical_audit.py          ← single source of truth — recomputes every claim
 └── requirements.txt
 ```
 
@@ -61,7 +64,7 @@ case3-demand-pulse/
 | Notebooks | Jupyter + nbformat-built | Reproducible, the brief asks for this artifact |
 | Plotting | Plotly | Interactive in the notebook, embeds directly into Streamlit |
 | Clustering | scipy hierarchical (Ward) | 14 vectors — hierarchical is more honest than forcing k-means |
-| Forecast | statsmodels Holt-Winters + SARIMA, vs seasonal-naive baseline | Brief explicitly says no exotic models; we beat the naive baseline by ~22% MAPE |
+| Forecast | statsmodels Holt-Winters + SARIMA, vs seasonal-naive baseline | Brief explicitly says no exotic models; Mumbai Holt-Winters MAPE 7.14% beats the naive baseline (10.49%) by 32% relative |
 | Dashboard | Streamlit | Recommended in the brief, zero infra |
 | Deployment target | Hugging Face Spaces (Streamlit SDK, free tier) | Best-fit for data demos, no cold-start issue once warmed |
 
@@ -74,9 +77,9 @@ case3-demand-pulse/
 
 ## In production, I would also add
 
-- **Daily MAPE alarm** on the Delhi forecast, with a Slack page if rolling 14-day MAPE rises >30% week-on-week.
+- **Daily MAPE alarm** on the Mumbai forecast, with a Slack page if rolling 14-day MAPE rises >30% week-on-week.
 - **Holiday calendar table** to suppress alarms on known-disrupted weeks.
-- **Per-city Holt-Winters fits** if we generalise beyond Delhi.
+- **Per-city Holt-Winters fits** if we generalise beyond Mumbai.
 - **Cost feed plumbing** so `SURGE_COST_PER_ORDER` reads from the ops finance system instead of being a sidebar knob.
 - **Two-sided guardrail** on the supply-gap A/B: monitor both rider-acceptance lift and total spend per delivered order — kill the experiment if spend per delivery climbs >X% without acceptance lifting commensurately.
 

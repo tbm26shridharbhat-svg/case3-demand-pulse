@@ -132,13 +132,15 @@ if page == "TL;DR for the Ops Head":
 
     st.subheader("The headline")
     st.markdown(f"""
-The current surge policy is **mostly aligned with demand**: ~{1 - waste.n_surge.sum() / total_surge_orders:.0%}
-of surge spend fires in above-median-demand cells within each city. The wasteful **{waste.n_surge.sum() / total_surge_orders:.1%}**
-is recoverable through small rule edits and is enumerated in the *Surge Waste & Supply Gap* tab.
+The current surge policy is **mostly aligned with demand**: **{1 - waste.n_surge.sum() / total_surge_orders:.1%}**
+of surge spend fires *outside* the WASTE class (below-median demand AND above-median surge fire rate).
+The wasteful **{waste.n_surge.sum() / total_surge_orders:.1%}** is small ({int(waste.n_surge.sum())} surge events
+over 90 days), recoverable through rule edits enumerated in the *Surge Waste & Supply Gap* tab.
 
-The **larger lever is the dinner-ramp at hour 18**: peak-level demand (~3,683 pooled orders/hour) currently
-sees surge in only **5.7%** of cases versus **52%** at hour 19. Recommendation: A/B test a hour-18 surge
-boost in one city's weekday window before national rollout.
+The **larger lever is the dinner-ramp at hour 18**: peak-level demand (3,683 pooled orders/hour) currently
+sees surge in only **5.7%** of cases versus **52.1%** at hour 19. Recommendation: A/B test a hour-18 surge
+boost in one city's weekday window before national rollout — with **delivery time as a primary outcome**
+(see *Sanity Check* tab for why).
 
 Two specific weekend cells deviate from the national pattern (Chennai weekend, Kolkata weekend) — they
 run a flatter, later peak. Ship a small late-night extension for those two only; do **not** build a
@@ -432,12 +434,12 @@ from a small slice of peak-hour orders.** If removal doesn't hurt, the entire su
 # Page 7 — Forecast
 # ===========================================================
 elif page == "7-Day Forecast":
-    st.title("7-Day Forecast — Delhi")
+    st.title("7-Day Forecast — Mumbai")
     st.caption("Daily order count, Holt-Winters (weekly seasonality). MAPE on walk-forward backtest.")
 
-    delhi = (df[df.city == "Delhi"].groupby("date").size().rename("orders")
-               .to_frame())
-    delhi.index = pd.DatetimeIndex(delhi.index, freq="D")
+    history = (df[df.city == "Mumbai"].groupby("date").size().rename("orders")
+                 .to_frame())
+    history.index = pd.DatetimeIndex(history.index, freq="D")
 
     try:
         fc = pd.read_csv(OUT / "forecast.csv", parse_dates=["date"])
@@ -446,7 +448,7 @@ elif page == "7-Day Forecast":
         st.stop()
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=delhi.index, y=delhi.orders,
+    fig.add_trace(go.Scatter(x=history.index, y=history.orders,
                              mode="lines", name="actual",
                              line=dict(color="black")))
     fig.add_trace(go.Scatter(x=fc.date, y=fc.forecast_orders,
@@ -455,16 +457,19 @@ elif page == "7-Day Forecast":
     fig.update_layout(xaxis_title="date", yaxis_title="orders", height=440)
     st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("MAPE on walk-forward backtest (3 windows × 7 days)")
+    st.subheader("MAPE on walk-forward backtest (3 windows × 7 days) — Mumbai")
     st.code("""
-seasonal_naive   pooled = 11.01%   weekday = 11.82%   weekend = 8.98%
-holt_winters     pooled =  8.61%   weekday =  9.61%   weekend = 6.11%   ← shipped
-sarima           pooled =  8.97%   weekday =  9.96%   weekend = 6.49%
+seasonal_naive   pooled = 10.49%   weekday = 10.93%   weekend = 9.39%
+holt_winters     pooled =  7.14%   weekday =  7.96%   weekend = 5.08%   ← shipped
+sarima           pooled =  7.86%   weekday =  8.95%   weekend = 5.14%
 """)
     st.markdown("""
-**Why not exotic.** The brief explicitly de-prioritises model sophistication. Holt-Winters
-beats seasonal-naïve by ~22% relative MAPE and is one line of pickle to ship. Notebook 04
-documents the 5 production monitors we'd put around it on day one.
+**Why Mumbai, not the largest city.** Bangalore is largest by volume (10,776 orders) but produced
+HW MAPE of 9.08%; Mumbai (10,022 orders) produced 7.14%. We pick on backtest evidence, not headline volume.
+
+**Why not exotic.** The brief explicitly de-prioritises model sophistication. Holt-Winters beats
+seasonal-naïve by **32% relative MAPE** and is one line of pickle to ship. Notebook 04 documents
+the 5 production monitors we'd put around it on day one.
 """)
 
     st.divider()

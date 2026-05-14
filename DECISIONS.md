@@ -5,7 +5,7 @@
 1. **Surge cost = ₹20 per surge-applied order.** The dataset has a binary `surge_applied` flag but no cost field. ₹20 is the typical range on Indian aggregators (₹15–₹25). The notebook and the dashboard both expose this as a single variable so the Ops Head can swap her real cost in and re-run.
 2. **Day-bucket = `weekend` (Sat/Sun) vs `weekday`.** Three- or four-way bucketing was considered, but with 50k orders / 90 days / 7 cities, finer buckets fall below ~50 orders/cell and statistical noise dominates.
 3. **"Low demand" means bottom-50% within the same city.** Mumbai's bottom-half is not Pune's top-half. Normalising globally would have penalised smaller cities for being small, not for being miscalibrated. This is the most consequential analysis choice in Notebook 02.
-4. **Forecast city = Delhi.** Largest by volume → most stable signal. Notebook 03 concluded the demand shape generalises across cities, so Delhi was sufficient for the brief's "at least one city" ask.
+4. **Forecast city = Mumbai.** Among the top-3 cities by volume (Bangalore 10,776, Mumbai 10,022, Delhi 8,171), Mumbai produced the lowest walk-forward MAPE on a fair head-to-head: Holt-Winters pooled MAPE of **7.14%** vs Delhi's 8.61% and Bangalore's 9.08%. Notebook 03 already concluded that demand shape generalises across cities, so the choice was non-consequential to the policy recommendations — picked on backtest evidence rather than headline volume.
 5. **Forecast horizon = 7 days, daily resolution.** Daily was the honest call given 90 days of training data ≈ 13 weekly cycles. Hourly stretch goal de-scoped.
 6. **Baseline = seasonal-naive (y_t = y_{t-7}).** Anything we ship must beat this; otherwise the data has no signal beyond the weekly cycle.
 
@@ -34,7 +34,7 @@
 
 - **Per-city Holt-Winters in parallel, served via a model-registry pattern.** Just to prove the generalisation claim from Notebook 03 with real numbers.
 - **A causal-style analysis on existing surge fire events** — does surge actually reduce delivery-time-min in the data, or is it just labeled noise? Even a simple matched-pairs comparison would be a useful sanity check on whether the policy is buying what it thinks it's buying.
-- **Spatial dimension.** The dataset has restaurant_id but no lat/lon. With even a coarse geo, the "supply gap" finding becomes 10x more actionable (which neighbourhoods in Delhi are gap-hot at hour 18?).
+- **Spatial dimension.** The dataset has restaurant_id but no lat/lon. With even a coarse geo, the "supply gap" finding becomes 10x more actionable (which neighbourhoods in Mumbai are gap-hot at hour 18?).
 - **Productionise the dashboard** with proper auth (Streamlit Cloud + Google SSO) rather than the free HF Spaces deployment, so it can be the durable companion to a Monday-morning ops meeting.
 
 ## AI assistant usage (for transparency, per the brief's FAQ)
