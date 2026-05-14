@@ -21,6 +21,20 @@ Recomputed directly from `data/orders.csv` on the date listed in the git commit 
 
 The hour-exact estimate and the NB05 within-peak-hour mean agree to within 0.03 min — two independent procedures recovering the same finding.
 
+### Notebook 04 §7 — per-city Holt-Winters generalisation
+
+| City | mean/day | naïve MAPE | HW MAPE | HW lift |
+|---|---|---|---|---|
+| Mumbai | 111.4 | 10.49% | **7.14%** | +31.9% |
+| Hyderabad | 72.1 | 11.58% | 8.42% | +27.3% |
+| Delhi | 90.8 | 11.01% | 8.61% | +21.8% |
+| Pune | 61.4 | 13.36% | 8.91% | +33.3% |
+| Bangalore | 119.7 | 10.66% | 9.08% | +14.8% |
+| Chennai | 55.9 | 16.50% | 12.41% | +24.8% |
+| Kolkata | 44.2 | 12.25% | 12.31% | **−0.5%** |
+
+HW wins in 6/7 cities; **Kolkata is the exception** — its low volume and weekend outlier signature defeat the additive Holt-Winters model. Deploy seasonal-naïve in Kolkata, HW everywhere else.
+
 
 
 ```

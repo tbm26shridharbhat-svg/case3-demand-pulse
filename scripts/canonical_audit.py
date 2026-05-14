@@ -174,5 +174,26 @@ T["psm_hour_exact_ci_low"] = round(float(np.percentile(boot, 2.5)), 3)
 T["psm_hour_exact_ci_high"] = round(float(np.percentile(boot, 97.5)), 3)
 T["psm_n_pairs"] = int(len(flat))
 
+# Per-city forecast MAPEs (Notebook 04 §7)
+def _naive(t): return pd.Series(t.iloc[-7:].values)
+def _hw(t):
+    return ExponentialSmoothing(t, seasonal_periods=7, trend="add", seasonal="add").fit().forecast(7).reset_index(drop=True)
+def _walk(series, fn, h=7, n=3):
+    rows = []
+    for w in range(n):
+        e = len(series) - w * h
+        s = e - h
+        train, test = series.iloc[:s], series.iloc[s:e]
+        fc = fn(train).iloc[:h].values
+        rows.append(pd.DataFrame({"a": test.values, "p": fc}))
+    return pd.concat(rows)
+for city in sorted(df.city.unique()):
+    daily = df[df.city == city].groupby("date").size().rename("orders")
+    daily.index = pd.DatetimeIndex(daily.index, freq="D")
+    bt_n = _walk(daily, _naive)
+    bt_h = _walk(daily, _hw)
+    T[f"city_{city.lower()}_naive_mape_%"] = round(mape(bt_n.a, bt_n.p), 2)
+    T[f"city_{city.lower()}_hw_mape_%"] = round(mape(bt_h.a, bt_h.p), 2)
+
 for k, val in sorted(T.items()):
     print(f"{k:42s} = {val}")

@@ -80,7 +80,9 @@ page = st.sidebar.radio(
      "City Patterns",
      "Cuisine Cuts",
      "Sanity Check — is surge buying speed?",
-     "7-Day Forecast"],
+     "Causal — propensity-score matching",
+     "7-Day Forecast",
+     "Per-City Forecasts"],
 )
 
 st.sidebar.divider()
@@ -431,7 +433,66 @@ from a small slice of peak-hour orders.** If removal doesn't hurt, the entire su
 
 
 # ===========================================================
-# Page 7 — Forecast
+# Page 6b — Causal sanity (PSM)
+# ===========================================================
+elif page == "Causal — propensity-score matching":
+    st.title("Surge → delivery time: the matched estimate")
+    st.caption("Notebook 06 §2. Hour-exact propensity-score matching with bootstrap 95% CI.")
+
+    try:
+        psm = pd.read_csv(OUT / "psm_results.csv")
+    except FileNotFoundError:
+        st.warning("Run Notebook 06 first to generate outputs/psm_results.csv.")
+        st.stop()
+
+    primary = psm[psm.estimator == "hour_exact_psm"].iloc[0]
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Matched ATT", f"{primary.estimate_min:+.2f} min",
+              delta=f"n={int(primary.n_pairs):,} pairs", delta_color="off")
+    c2.metric("95% CI low", f"{primary.ci_low:+.2f} min")
+    c3.metric("95% CI high", f"{primary.ci_high:+.2f} min",
+              delta="includes zero" if primary.ci_low <= 0 <= primary.ci_high else "excludes zero",
+              delta_color="off")
+
+    st.info(
+        "Hour-exact PSM matches each surge order to a non-surge order at the **same hour**, "
+        "then within hour uses propensity from city + cuisine + weekend + log(value). "
+        "The 95% bootstrap CI **straddles zero** — we cannot reject the null that surge "
+        "has no effect on delivery time in the matched population."
+    )
+
+    st.subheader("All four estimates side by side")
+    st.dataframe(
+        psm[["estimator", "estimate_min", "ci_low", "ci_high", "n_pairs", "notes"]]
+           .rename(columns={"estimate_min": "Δ delivery (min)",
+                            "ci_low": "CI low", "ci_high": "CI high",
+                            "n_pairs": "matched pairs"})
+           .style.format({"Δ delivery (min)": "{:+.3f}",
+                          "CI low": "{:+.3f}",
+                          "CI high": "{:+.3f}"}, na_rep="—"),
+        use_container_width=True, hide_index=True,
+    )
+
+    st.subheader("Per-hour matched diagnostic")
+    st.caption("Match rate and matched delta per hour. Peak hours (12, 13, 19, 20, 21) drive the aggregate.")
+    try:
+        per_hour = pd.read_csv(OUT / "psm_per_hour.csv")
+        fig = px.bar(per_hour, x="hour", y="mean_diff",
+                     color="mean_diff",
+                     color_continuous_scale=[(0, "#1f77b4"), (0.5, "#cccccc"), (1, "#d62728")],
+                     labels={"mean_diff": "matched Δ delivery (min, surge − no-surge)",
+                             "hour": "hour of day"},
+                     height=380,
+                     hover_data=["n_treated", "n_matched", "match_rate_%"])
+        fig.add_hline(y=0, line_dash="dash", line_color="black")
+        st.plotly_chart(fig, use_container_width=True)
+        st.dataframe(per_hour, use_container_width=True, hide_index=True)
+    except FileNotFoundError:
+        st.caption("Per-hour breakdown not available.")
+
+
+# ===========================================================
+# Page 7 — Forecast (Mumbai)
 # ===========================================================
 elif page == "7-Day Forecast":
     st.title("7-Day Forecast — Mumbai")
@@ -471,6 +532,69 @@ HW MAPE of 9.08%; Mumbai (10,022 orders) produced 7.14%. We pick on backtest evi
 seasonal-naïve by **32% relative MAPE** and is one line of pickle to ship. Notebook 04 documents
 the 5 production monitors we'd put around it on day one.
 """)
+
+
+# ===========================================================
+# Page 8 — Per-city forecasts (Tier 1.4)
+# ===========================================================
+elif page == "Per-City Forecasts":
+    st.title("Per-City Forecasts — does the model generalise?")
+    st.caption("Notebook 04 §7. Holt-Winters fit on every city, walk-forward MAPE compared to seasonal-naïve.")
+
+    try:
+        per_city = pd.read_csv(OUT / "per_city_mape.csv")
+        forecasts = pd.read_csv(OUT / "per_city_forecasts.csv", parse_dates=["date"])
+    except FileNotFoundError:
+        st.warning("Run Notebook 04 to generate outputs/per_city_mape.csv.")
+        st.stop()
+
+    wins = (per_city.HW_beats_naive_ > 0).sum() if False else (per_city["HW_beats_naive_%"] > 0).sum()
+    losses = len(per_city) - wins
+    c1, c2, c3 = st.columns(3)
+    c1.metric("HW beats naïve", f"{wins} / {len(per_city)} cities")
+    c2.metric("Best — lowest HW MAPE", per_city.iloc[0].city,
+              delta=f"{per_city.iloc[0]['HW_MAPE_%']:.2f}%", delta_color="off")
+    worst = per_city.iloc[-1]
+    c3.metric("Worst", worst.city,
+              delta=f"{worst['HW_MAPE_%']:.2f}% vs {worst['naive_MAPE_%']:.2f}% naïve",
+              delta_color="inverse" if worst["HW_beats_naive_%"] < 0 else "off")
+
+    st.subheader("MAPE comparison — ordered by HW performance")
+    st.dataframe(
+        per_city.style.format({
+            "mean/day": "{:.1f}", "std/day": "{:.2f}",
+            "naive_MAPE_%": "{:.2f}", "HW_MAPE_%": "{:.2f}",
+            "HW_weekday_%": "{:.2f}", "HW_weekend_%": "{:.2f}",
+            "HW_beats_naive_%": "{:+.1f}",
+        }),
+        use_container_width=True, hide_index=True,
+    )
+
+    st.markdown("""
+**The headline finding.** Holt-Winters beats the seasonal-naïve baseline in **6 of 7 cities**.
+The one exception is **Kolkata**, where HW is 0.5% *worse* than the baseline — the
+city's low volume (~44 orders/day) and weekend outlier pattern (Notebook 03) destabilise the model.
+**Ship the seasonal-naïve baseline for Kolkata; ship HW everywhere else.** This is a per-city
+deployment decision, not a single-model decision.
+""")
+
+    st.subheader("April 1–7 forecasts — every city")
+    fc_wide = forecasts.pivot(index="date", columns="city", values="forecast_orders")
+    fig = go.Figure()
+    for city in fc_wide.columns:
+        fig.add_trace(go.Scatter(x=fc_wide.index, y=fc_wide[city],
+                                 mode="lines+markers", name=city, line=dict(width=3)))
+    fig.update_layout(
+        title="7-day forecast trajectories, all cities",
+        xaxis_title="date", yaxis_title="forecast orders/day",
+        height=460,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.dataframe(
+        fc_wide.round(0).astype(int),
+        use_container_width=True,
+    )
 
     st.divider()
     st.subheader("Forecast table (April 1–7, 2025)")
