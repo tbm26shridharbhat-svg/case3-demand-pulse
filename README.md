@@ -1,3 +1,15 @@
+---
+title: Demand Pulse — Surge Policy Investigation
+emoji: 📈
+colorFrom: blue
+colorTo: red
+sdk: streamlit
+sdk_version: "1.40.0"
+app_file: app/streamlit_app.py
+pinned: false
+license: mit
+---
+
 # Case 3 — Food Delivery Demand Pulse
 
 **Live demo:** _(replace with HF Spaces URL after deploy)_
