@@ -1,0 +1,13 @@
+.venv/
+venv/
+.git/
+.gitignore
+.DS_Store
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.env
+notebooks/.ipynb_checkpoints/
+outputs/figures/
+deck_prompt*.md
+*.md.bak

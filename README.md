@@ -3,9 +3,8 @@ title: Demand Pulse — Surge Policy Investigation
 emoji: 📈
 colorFrom: blue
 colorTo: red
-sdk: streamlit
-sdk_version: "1.40.0"
-app_file: app/streamlit_app.py
+sdk: docker
+app_port: 7860
 pinned: false
 license: mit
 ---
