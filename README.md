@@ -1,0 +1,88 @@
+# Case 3 — Food Delivery Demand Pulse
+
+**Live demo:** _(replace with HF Spaces URL after deploy)_
+**Repo:** _(replace with GitHub URL)_
+**Demo video:** _(replace with Loom/YouTube link)_
+
+## What this is
+
+A one-day investigation into a regional food-delivery company's surge-incentive policy. The Ops Head suspected she was over-paying surge during hours that aren't actually peak. This submission answers her question honestly — including the parts where the data disagreed with the original hypothesis.
+
+## TL;DR (one paragraph for the Ops Head)
+
+The current surge policy is **mostly aligned with demand** — ~96% of surge spend fires in above-median-demand cells within each city. The recoverable waste is real but modest (~₹3.5k/month at ₹20 per surge order). The **bigger operational lever is the dinner-ramp at hour 18**, where 3,683 pooled orders/hour see surge in only **5.7%** of cases vs **52%** at hour 19. A one-city A/B test on hour-18 surge is the recommended next step. The cohort hypothesis we walked in with — that cities have meaningfully different demand shapes — was **not supported** by the data; only Chennai-weekend and Kolkata-weekend deviate, and they need a small targeted late-night extension rather than a tier system.
+
+## How to run locally
+
+```bash
+git clone <repo>
+cd case3-demand-pulse
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# Run notebooks top-to-bottom (each is self-contained)
+jupyter lab notebooks/
+
+# Or launch the interactive dashboard
+streamlit run app/streamlit_app.py
+```
+
+## What's in here
+
+```
+case3-demand-pulse/
+├── data/
+│   └── orders.csv                  ← 50k rows, supplied by the brief
+├── notebooks/
+│   ├── 01_eda.ipynb                ← profile + reframe the question
+│   ├── 02_surge_waste.ipynb        ← the killer insight — waste vs supply-gap quantified in rupees
+│   ├── 03_city_cohorts.ipynb       ← cohort hypothesis tested and rejected (honest null result)
+│   └── 04_forecast.ipynb           ← Delhi 7-day forecast, walk-forward MAPE, production-monitoring plan
+├── app/
+│   └── streamlit_app.py            ← 5-page dashboard the Ops Head can play with
+├── outputs/
+│   ├── cells.csv                   ← (city, day-bucket, hour) cell table with classifications
+│   ├── top_waste_cells.csv         ← what to defuse first
+│   ├── top_gap_cells.csv           ← what to invest in first
+│   ├── city_outliers.csv           ← Chennai-weekend, Kolkata-weekend
+│   ├── forecast.csv                ← April 1–7 Delhi forecast
+│   └── figures/                    ← all generated Plotly HTMLs
+├── exec_summary.md                 ← one-page executive summary
+├── deck.md                         ← 5-slide Marp markdown (render: `marp deck.md --pdf`)
+├── DECISIONS.md                    ← assumptions, trade-offs, de-scoped items
+└── requirements.txt
+```
+
+## Stack & why each piece
+
+| Piece | Pick | Why |
+|---|---|---|
+| Notebooks | Jupyter + nbformat-built | Reproducible, the brief asks for this artifact |
+| Plotting | Plotly | Interactive in the notebook, embeds directly into Streamlit |
+| Clustering | scipy hierarchical (Ward) | 14 vectors — hierarchical is more honest than forcing k-means |
+| Forecast | statsmodels Holt-Winters + SARIMA, vs seasonal-naive baseline | Brief explicitly says no exotic models; we beat the naive baseline by ~22% MAPE |
+| Dashboard | Streamlit | Recommended in the brief, zero infra |
+| Deployment target | Hugging Face Spaces (Streamlit SDK, free tier) | Best-fit for data demos, no cold-start issue once warmed |
+
+## What's NOT done
+
+- **Hourly forecast** — kept it daily because 90 days = 13 weekly cycles is short for hourly SARIMA. Daily is more defensible. Stretch goal de-scoped.
+- **A/B test design memo** — the recommendation is "A/B test hour-18 surge in one city," and the right hand-off is a 1-page MDE/sample-size memo. Sketched in `exec_summary.md` but not formally written.
+- **Holiday / weather feature engineering** — the forecast assumes the next 7 days look like the last 13 weeks. Documented as a known limitation in Notebook 04.
+- **CI / tests for the dashboard** — single-developer demo, not a production service.
+
+## In production, I would also add
+
+- **Daily MAPE alarm** on the Delhi forecast, with a Slack page if rolling 14-day MAPE rises >30% week-on-week.
+- **Holiday calendar table** to suppress alarms on known-disrupted weeks.
+- **Per-city Holt-Winters fits** if we generalise beyond Delhi.
+- **Cost feed plumbing** so `SURGE_COST_PER_ORDER` reads from the ops finance system instead of being a sidebar knob.
+- **Two-sided guardrail** on the supply-gap A/B: monitor both rider-acceptance lift and total spend per delivered order — kill the experiment if spend per delivery climbs >X% without acceptance lifting commensurately.
+
+## Demo video
+
+See `demo_video_link.txt` for the URL. Covers (in order): the question reframe → policy alignment map → hour-18 finding → cohort null result → forecast + MAPE table → 5 production monitors I'd add.
+
+## License
+
+MIT.
