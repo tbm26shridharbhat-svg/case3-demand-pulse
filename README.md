@@ -11,7 +11,7 @@ license: mit
 
 # Case 3 — Food Delivery Demand Pulse
 
-**Live demo:** _(replace with HF Spaces URL after deploy)_
+**Live demo:** <https://shridharbhat820-demand-pulse.hf.space>  ·  *(also accessible via the Space page on Hugging Face)*
 **Repo:** _(replace with GitHub URL)_
 **Demo video:** _(replace with Loom/YouTube link)_
 
