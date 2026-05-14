@@ -17,8 +17,12 @@ from scipy.spatial.distance import pdist
 from sklearn.metrics import silhouette_score
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import NearestNeighbors
 
 ROOT = Path(__file__).resolve().parents[1]
+RNG = np.random.default_rng(42)
 df = pd.read_csv(ROOT / "data" / "orders.csv", parse_dates=["timestamp"])
 df["hour"] = df.timestamp.dt.hour
 df["dow_num"] = df.timestamp.dt.dayofweek
@@ -138,6 +142,37 @@ v = df.groupby("city").size().sort_values(ascending=False)
 T["bangalore_vol"] = int(v["Bangalore"])
 T["mumbai_vol"] = int(v["Mumbai"])
 T["delhi_vol"] = int(v["Delhi"])
+
+# Hour-exact PSM (Notebook 06)
+df["weekend"] = (df.dow_num >= 5).astype(int)
+df["log_value"] = np.log1p(df.order_value)
+X_cat = pd.get_dummies(df[["city", "cuisine"]], drop_first=False).astype(float).values
+X_cont = StandardScaler().fit_transform(df[["log_value", "weekend"]].values)
+X_ps = np.hstack([X_cont, X_cat])
+ps_model = LogisticRegression(max_iter=2000, C=1.0).fit(X_ps, df.surge_applied.values)
+df["logit_ps"] = np.log(ps_model.predict_proba(X_ps)[:, 1] /
+                        (1 - ps_model.predict_proba(X_ps)[:, 1]))
+caliper = 0.2 * df.logit_ps.std()
+
+all_deltas = []
+for h in range(24):
+    t = df[(df.surge_applied == 1) & (df.hour == h)]
+    c = df[(df.surge_applied == 0) & (df.hour == h)]
+    if len(t) < 5 or len(c) < 5:
+        continue
+    nn = NearestNeighbors(n_neighbors=1).fit(c[["logit_ps"]].values)
+    d, idx = nn.kneighbors(t[["logit_ps"]].values)
+    within = d.flatten() <= caliper
+    mt = t[within].reset_index(drop=True)
+    mc = c.iloc[idx.flatten()[within]].reset_index(drop=True)
+    all_deltas.append(mt.delivery_time_min.values - mc.delivery_time_min.values)
+flat = np.concatenate(all_deltas)
+boot = np.array([flat[RNG.choice(len(flat), len(flat), replace=True)].mean()
+                 for _ in range(1000)])
+T["psm_hour_exact_att_min"] = round(float(flat.mean()), 3)
+T["psm_hour_exact_ci_low"] = round(float(np.percentile(boot, 2.5)), 3)
+T["psm_hour_exact_ci_high"] = round(float(np.percentile(boot, 97.5)), 3)
+T["psm_n_pairs"] = int(len(flat))
 
 for k, val in sorted(T.items()):
     print(f"{k:42s} = {val}")

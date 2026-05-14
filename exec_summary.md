@@ -36,7 +36,9 @@ Hour 18 over-indexes on **Beverages and North Indian** (+1.1pp, +0.9pp share lif
 
 ### 3.  Ask the bigger question: is the current peak-hour surge buying anything?
 
-Notebook 05 §4 shows that **within peak hours, surge-applied orders and non-surge orders have near-identical delivery time** (within 0.5 min). Pooled, surge orders are 9% *slower* — and that's confounded by hour, but the within-hour comparison eliminates the confound. The data does **not** support the assumption that surge is buying faster delivery.
+Notebook 05 §4 shows that **within peak hours, surge-applied orders and non-surge orders have near-identical delivery time** (within 0.5 min). Pooled, surge orders are 9.2% *slower* — confounded by hour — but the within-hour comparison eliminates that confound.
+
+**Notebook 06 strengthens this with formal propensity-score matching.** Matching each surge order to a non-surge order at the *same hour* (and on city, cuisine, weekend, basket size via logit-propensity), the matched ATT is **+0.13 min, 95% bootstrap CI [−0.19, +0.46]** over 11,937 matched pairs. The CI straddles zero — we cannot reject the null that surge has no effect on delivery time in the matched population. The upper bound (+28 seconds) is operationally meaningless. *Robustness check in the same notebook shows that standard PSM without an exact-hour constraint inflates the estimate to +0.65 min via cross-hour matches; that's the methodological gotcha the hour-exact procedure avoids.*
 
 **Recommended follow-up A/B (after hour-18 test concludes):** remove surge from a small (~5%) random slice of peak-hour orders for 14 days. Outcome metric: mean delivery time and rider acceptance. **If removal doesn't hurt either metric, the entire surge envelope is worth re-evaluating.** This is observational evidence, not causal — but it's the strongest reason in the dataset to question the policy.
 
@@ -80,7 +82,7 @@ Holt-Winters beats the seasonal-naïve baseline by **32% relative MAPE**. Produc
 - We do not claim the cohort thesis is real. **We tested it and rejected it.** This simplifies your action set rather than complicates it.
 - The rupee waste number assumes **₹20 per surge order**. If your real number is different, the magnitude scales linearly; the *share* (3.3% of surge envelope, or 4.5% if you broaden "waste" to any surge in below-median-demand cells regardless of surge rate) is unit-free.
 - The hour-18 recommendation is a **hypothesis**, not a guaranteed win. The A/B test is the way to find out without putting national spend at risk.
-- The delivery-time finding (§3) is **observational, not causal**. Surge fires deterministically by hour, so we cannot recover the counterfactual from the data alone. The follow-up A/B is the way to convert this observation into evidence.
+- The delivery-time finding (§3) is **matched-observational, not strictly causal**. Notebook 06 controls for the obvious confounders (hour, city, cuisine, weekend, basket size) via hour-exact propensity matching with bootstrap CI. Unobserved confounders remain — most plausibly *distance to drop*, *rider density*, *kitchen latency*. The follow-up A/B is the way to test the residual.
 - Restaurant-level recommendations are **out of scope** because the supplied dataset shows uniform volume across all 800 restaurants (top-100 own only 15%). This pattern is unrealistic for production data and likely an artefact of synthetic generation. Re-do this analysis on real order logs and the top-restaurant cut becomes the most actionable lever in the deck.
 
 ---

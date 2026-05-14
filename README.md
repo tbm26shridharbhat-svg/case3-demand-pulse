@@ -21,7 +21,7 @@ A one-day investigation into a regional food-delivery company's surge-incentive 
 
 ## TL;DR (one paragraph for the Ops Head)
 
-The current surge policy is **mostly aligned with demand** — 95.5% of surge spend fires in above-median-demand cells within each city. The recoverable waste is small: the WASTE class (below-median demand AND above-median surge fire rate) carries **393 surge events over 90 days = ₹7,860 / ₹2,620 per month at ₹20 per surge order**. The **bigger operational lever is the dinner-ramp at hour 18**, where 3,683 pooled orders/hour see surge in only **5.7%** of cases vs **52.1%** at hour 19 — A/B test recommended. The cohort hypothesis we walked in with — that cities have meaningfully different demand shapes — was **not supported** by the data (max pairwise distance across 14 demand-shape vectors = 0.052); only Chennai-weekend and Kolkata-weekend deviate, and they need a small targeted late-night extension rather than a tier system. **And — the data does not support the assumption that surge is buying faster delivery**: within peak hours (12, 13, 19, 20, 21), surge and non-surge orders have delivery times within ±0.5 min of each other (Notebook 05 §4). That single observation re-shapes how the hour-18 A/B should be designed.
+The current surge policy is **mostly aligned with demand** — 95.5% of surge spend fires in above-median-demand cells within each city. The recoverable waste is small: the WASTE class (below-median demand AND above-median surge fire rate) carries **393 surge events over 90 days = ₹7,860 / ₹2,620 per month at ₹20 per surge order**. The **bigger operational lever is the dinner-ramp at hour 18**, where 3,683 pooled orders/hour see surge in only **5.7%** of cases vs **52.1%** at hour 19 — A/B test recommended. The cohort hypothesis we walked in with — that cities have meaningfully different demand shapes — was **not supported** by the data (max pairwise distance across 14 demand-shape vectors = 0.052); only Chennai-weekend and Kolkata-weekend deviate, and they need a small targeted late-night extension rather than a tier system. **And — the data does not support the assumption that surge is buying faster delivery**: hour-exact propensity-score matching across 11,937 pairs gives a matched ATT of **+0.13 min, 95% bootstrap CI [−0.19, +0.46]** (Notebook 06) — operationally indistinguishable from zero. That single finding re-shapes how the hour-18 A/B should be designed.
 
 ## How to run locally
 
@@ -49,7 +49,8 @@ case3-demand-pulse/
 │   ├── 02_surge_waste.ipynb        ← the killer insight — waste vs supply-gap quantified in rupees
 │   ├── 03_city_cohorts.ipynb       ← cohort hypothesis tested and rejected (honest null result)
 │   ├── 04_forecast.ipynb           ← Mumbai 7-day forecast, walk-forward MAPE, production-monitoring plan
-│   └── 05_deeper_cuts.ipynb        ← cuisine, restaurants, AOV + the surge-vs-delivery sanity check
+│   ├── 05_deeper_cuts.ipynb        ← cuisine, restaurants, AOV + the surge-vs-delivery sanity check
+│   └── 06_causal_sanity.ipynb      ← hour-exact propensity-score matching: surge's matched effect on delivery time
 ├── app/
 │   └── streamlit_app.py            ← 7-page dashboard the Ops Head can play with
 ├── outputs/

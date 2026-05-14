@@ -1,0 +1,5 @@
+estimator,estimate_min,ci_low,ci_high,n_pairs,notes
+naive_pooled,3.6551,,,,confounded by hour
+within_peak_hour_mean,0.162,,,5.0,simple mean of 5 peak-hour deltas (NB05 §4)
+standard_psm,0.6477,0.3245,0.9457,11922.0,"PSM with hour in propensity, NO hour-exact constraint — biased by cross-hour matches"
+hour_exact_psm,0.1261,-0.1928,0.4575,11937.0,"PRIMARY: exact match on hour + 1:1 NN on logit propensity within hour, caliper 0.2*SD"

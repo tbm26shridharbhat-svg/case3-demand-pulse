@@ -10,6 +10,19 @@ The audit script (`/tmp/canonical_audit.py`, reproduced inline below) is the sin
 
 Recomputed directly from `data/orders.csv` on the date listed in the git commit log.
 
+### Notebook 06 — propensity-score matching results
+
+| Estimator | Estimate (min) | 95% CI | n pairs |
+|---|---|---|---|
+| Naïve pooled | +3.66 | n/a — confounded | — |
+| Standard PSM (no hour-exact) | +0.65 | [+0.32, +0.95] | 11,922 |
+| **Hour-exact PSM + within-hour propensity** | **+0.13** | **[−0.19, +0.46]** | **11,937** |
+| NB05 within-peak-hour mean | +0.16 | — descriptive | 5 peak hours |
+
+The hour-exact estimate and the NB05 within-peak-hour mean agree to within 0.03 min — two independent procedures recovering the same finding.
+
+
+
 ```
 above_med_demand_share_%                   = 95.5
 aov_mean                                   = 330.91
