@@ -4,7 +4,7 @@
 
 - **Live demo:** deployed to Hugging Face Spaces · <https://shridharbhat820-demand-pulse.hf.space>  ·  Space page: <https://huggingface.co/spaces/shridharbhat820/demand-pulse>.
 - **Deck PDF** is the canonical artifact submitted alongside this repo. Generated via Claude Design from the prompt in `deck_prompt_v3_densify.md` (since removed); design system + numbers documented in `AUDIT.md` for traceability.
-- **Demo video link** in `demo_video_link.txt` — replace placeholder with Loom/YouTube URL.
+- **Demo video link** — to be added at the top of README.md once recorded (Loom/YouTube unlisted).
 
 ## What the panel should look at first
 

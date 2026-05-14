@@ -113,7 +113,7 @@ case3-demand-pulse/
 
 ## Demo video
 
-See `demo_video_link.txt` for the URL. Covers (in order): the question reframe → policy alignment map → hour-18 finding → cohort null result → forecast + MAPE table → 5 production monitors I'd add.
+The demo video link will be added at the top of this README under "Demo video" once recorded. It covers (in order): the question reframe → policy alignment map → hour-18 finding → cohort null result → forecast + MAPE table → 5 production monitors I'd add.
 
 ## License
 
