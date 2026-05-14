@@ -1,0 +1,9 @@
+parameter,value,unit
+mumbai_h18_orders_90d,750.0,orders
+mumbai_h18_per_day,8.33,orders/day
+n_per_arm_at_14d,58.0,orders
+required_n_for_+3pp_at_80pct,3505.0,orders per arm
+acceptance_power_at_+5pp_14d,0.046,probability
+acceptance_power_at_+10pp_14d,0.192,probability
+delivery_mde_at_70pct_power,1.0,min
+delivery_required_n_for_0.5min,11991.0,orders per arm

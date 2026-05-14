@@ -22,15 +22,15 @@ Specifically, the **WASTE class** — cells that are below-median demand within 
 
 **Hour 18 (6pm) sees 3,683 pooled orders per hour-bucket** — peak-level demand, between hour 17's 1,832 and hour 19's 5,586. Surge fires there in only **5.7%** of cases versus **52%** at hour 19. This is the single biggest supply-gap signal in the dataset.
 
-**Recommended test:** raise weekday hour-18 surge fire rate from ~6% to ~30% in **one city** (we'd pick Mumbai or Bangalore for traffic volume) for 14 days. Pre-register **three** success metrics — including delivery time, see §3 for why:
+**Recommended test:** raise hour-18 surge fire rate from 5.7% to 30% in **Mumbai** for 14 days, 50/50 split at the order level. Notebook 07 runs the formal power analysis and finds an important constraint: the dataset's Mumbai hour-18 volume is ~8 orders/day, which gives only ~58 orders per arm in 14 days — **adequate to gate on delivery time, but under-powered to call an acceptance-rate win**. The pre-registration therefore promotes delivery time to primary and demotes acceptance to descriptive:
 
-| Metric | Pre-test | Win condition |
+| Metric | Role | Win / Kill condition |
 |---|---|---|
-| Rider acceptance rate, hour-18 window | baseline | ≥ +3 percentage points |
-| **Mean delivery time, hour-18 window** | baseline | **No worse than baseline, ideally −1 min** |
-| Total cost per delivered order in window | baseline | ≤ +8% |
+| **Mean delivery time, hour-18 window** | **Primary, well-powered** | ≤ baseline + 0.5 min · KILL if > +1.0 min at day-7 midpoint, p < 0.05 |
+| Rider acceptance rate, hour-18 window | Secondary, directional | Reported descriptively; lift > 0 supports going to a 90-day follow-up |
+| Cost per delivered order | Guardrail | ≤ +8% in win; KILL if > +12% at day 7 |
 
-If acceptance lifts but delivery time doesn't, **kill the test**. The gap is structural, not solvable with incentives.
+If delivery time worsens, **kill**. If delivery time holds and acceptance moves positively, go to a 90-day follow-up that's adequately powered for the acceptance outcome before national rollout. Notebook 07 §4 contains the verbatim pre-registration document to commit to the experiment platform on day 0.
 
 Hour 18 over-indexes on **Beverages and North Indian** (+1.1pp, +0.9pp share lift). The A/B should stratify acceptance metrics by cuisine to confirm the boost lands on dinner-ramp cuisines as expected.
 

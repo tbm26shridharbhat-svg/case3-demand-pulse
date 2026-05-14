@@ -21,6 +21,21 @@ Recomputed directly from `data/orders.csv` on the date listed in the git commit 
 
 The hour-exact estimate and the NB05 within-peak-hour mean agree to within 0.03 min — two independent procedures recovering the same finding.
 
+### Notebook 07 — A/B power analysis
+
+| Parameter | Value |
+|---|---|
+| Mumbai hour-18 orders (90 days) | 750 |
+| Per-day rate | 8.33 / day |
+| N per arm at 14-day pilot | 58 |
+| Required N per arm for +3pp acceptance lift at 80% power, α=0.0167 | 3,505 |
+| Achieved acceptance power at +5pp / 14d | 4.6% |
+| Achieved acceptance power at +10pp / 14d | 19.2% |
+| Delivery-time MDE at 70% power, 14d | ±1.0 min |
+| Delivery-time required N for ±0.5 min at 80% | 11,991 per arm |
+
+**Implication:** delivery time is the only outcome the 14-day pilot can statistically gate on. Acceptance graduates to a follow-up 90-day run if the 14-day pilot survives.
+
 ### Notebook 04 §7 — per-city Holt-Winters generalisation
 
 | City | mean/day | naïve MAPE | HW MAPE | HW lift |

@@ -50,7 +50,8 @@ case3-demand-pulse/
 │   ├── 03_city_cohorts.ipynb       ← cohort hypothesis tested and rejected (honest null result)
 │   ├── 04_forecast.ipynb           ← Mumbai 7-day forecast, walk-forward MAPE, production-monitoring plan
 │   ├── 05_deeper_cuts.ipynb        ← cuisine, restaurants, AOV + the surge-vs-delivery sanity check
-│   └── 06_causal_sanity.ipynb      ← hour-exact propensity-score matching: surge's matched effect on delivery time
+│   ├── 06_causal_sanity.ipynb      ← hour-exact propensity-score matching: surge's matched effect on delivery time
+│   └── 07_ab_design.ipynb          ← power analysis + pre-registration for the hour-18 A/B test
 ├── app/
 │   └── streamlit_app.py            ← 7-page dashboard the Ops Head can play with
 ├── outputs/
