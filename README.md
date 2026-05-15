@@ -15,7 +15,7 @@ license: mit
 
 **Live demo:** <https://shridharbhat820-demand-pulse.hf.space>  ·  *(also accessible via the Space page on Hugging Face)*
 **Repo:** <https://github.com/tbm26shridharbhat-svg/case3-demand-pulse>
-**Demo video:** _(replace with Loom/YouTube link)_
+**Demo video:** <https://www.loom.com/share/637788ec2211498b86648d1ec0af50dd>
 
 ## What this is
 
